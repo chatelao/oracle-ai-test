@@ -1,22 +1,39 @@
 #!/bin/bash
 # test.sh - Main test script for LLM and Oracle DB integration
 
+REPORT_FILE="test-report.md"
+
 echo "=== LLM x Oracle SQLcl Integration Test ==="
+echo "# Test Report - $(date)" > "$REPORT_FILE"
+echo "" >> "$REPORT_FILE"
+echo "| Test Case | Status | Details |" >> "$REPORT_FILE"
+echo "|-----------|--------|---------|" >> "$REPORT_FILE"
+
+log_result() {
+    local test_case=$1
+    local status=$2
+    local details=$3
+    echo "| $test_case | $status | $details |" >> "$REPORT_FILE"
+}
 
 # 1. Check Ollama
 echo "Checking Ollama..."
 if curl -s http://localhost:11434/api/tags > /dev/null; then
     echo "[OK] Ollama is reachable."
+    log_result "Check Ollama" "✅ OK" "Ollama is reachable"
 else
     echo "[FAIL] Ollama is not reachable on localhost:11434."
+    log_result "Check Ollama" "❌ FAIL" "Ollama is not reachable on localhost:11434"
 fi
 
 # 2. Check SQLcl
 echo "Checking SQLcl..."
 if command -v sql &> /dev/null; then
     echo "[OK] SQLcl is installed."
+    log_result "Check SQLcl" "✅ OK" "SQLcl is installed"
 else
     echo "[WARN] SQLcl (sql) not found in PATH."
+    log_result "Check SQLcl" "⚠️ WARN" "SQLcl (sql) not found in PATH"
 fi
 
 # 3. Basic LLM connectivity test
@@ -31,8 +48,10 @@ RESPONSE=$(curl -s -X POST http://localhost:11434/api/generate -d "{
 if [ -n "$RESPONSE" ]; then
     echo "[OK] LLM responded."
     echo "LLM Response: $RESPONSE"
+    log_result "LLM Connectivity" "✅ OK" "LLM ($LLM_MODEL) responded"
 else
     echo "[FAIL] LLM did not respond or llama3 model is not loaded."
+    log_result "LLM Connectivity" "❌ FAIL" "LLM did not respond or model $LLM_MODEL not loaded"
 fi
 
 # 4. Basic DB connectivity test (if SQLcl is present)
@@ -46,12 +65,17 @@ if command -v sql &> /dev/null; then
         DB_VERSION=$(echo "SELECT version FROM v\$instance;" | sql -s "$DB_CONN_STR" | grep -E "[0-9]+\.[0-9]+")
         if [ -n "$DB_VERSION" ]; then
             echo "[OK] Database connection successful. Version: $DB_VERSION"
+            log_result "DB Connectivity" "✅ OK" "Database version: $DB_VERSION"
         else
             echo "[FAIL] Could not connect to database or retrieve version."
+            log_result "DB Connectivity" "❌ FAIL" "Could not connect to database"
         fi
     else
         echo "[SKIP] DB_CONN_STR not set. Skipping DB test."
+        log_result "DB Connectivity" "⏭️ SKIP" "DB_CONN_STR not set"
     fi
+else
+    log_result "DB Connectivity" "⏭️ SKIP" "SQLcl not found"
 fi
 
 # 5. Integration: LLM generates SQL and SQLcl executes it
@@ -76,17 +100,23 @@ if command -v sql &> /dev/null && [ -n "$DB_CONN_STR" ]; then
             if [ $? -eq 0 ]; then
                 echo "[OK] Integration test successful."
                 echo "Result: $SQL_RESULT"
+                log_result "Integration Test" "✅ OK" "SQL executed successfully"
             else
                 echo "[FAIL] Failed to execute generated SQL."
+                log_result "Integration Test" "❌ FAIL" "Failed to execute generated SQL"
             fi
         else
             echo "[FAIL] Could not extract SQL from LLM response. Response was: $INTEGRATION_RESPONSE"
+            log_result "Integration Test" "❌ FAIL" "Could not extract SQL from LLM response"
         fi
     else
         echo "[FAIL] LLM did not respond for integration test."
+        log_result "Integration Test" "❌ FAIL" "LLM did not respond"
     fi
 else
     echo "[SKIP] SQLcl or DB_CONN_STR missing. Skipping integration test."
+    log_result "Integration Test" "⏭️ SKIP" "SQLcl or DB_CONN_STR missing"
 fi
 
+echo "" >> "$REPORT_FILE"
 echo "=== Test Run Complete ==="

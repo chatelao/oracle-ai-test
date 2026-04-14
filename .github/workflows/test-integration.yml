@@ -28,5 +28,12 @@ jobs:
     - name: Run Test Script (Dry Run/Connectivity Check)
       run: |
         # This will mostly fail or skip in a standard GitHub Runner as Ollama/SQLcl/DB are missing.
-        # But it tests the script's ability to handle missing dependencies gracefully.
+        # But it tests the script's ability to handle missing dependencies gracefully and generate a report.
         bash test.sh
+
+    - name: Upload Test Report to Summary
+      if: always()
+      run: |
+        if [ -f "test-report.md" ]; then
+          cat test-report.md >> $GITHUB_STEP_SUMMARY
+        fi
