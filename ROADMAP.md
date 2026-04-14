@@ -17,11 +17,11 @@ Dieses Projekt zielt darauf ab, das Zusammenspiel zwischen einem lokalen Large L
 ### 3. Testskript-Entwicklung (test.sh)
 - [x] Entwicklung eines Basistests zur Kommunikation mit dem LLM.
 - [x] Entwicklung eines Basistests zur Ausführung von SQL-Befehlen via SQLcl.
-- [ ] Integration: LLM generiert SQL, SQLcl führt es aus, Ergebnisse werden validiert.
+- [x] Integration: LLM generiert SQL, SQLcl führt es aus, Ergebnisse werden validiert.
 
 ### 4. CI/CD Integration
-- [ ] Erstellung eines GitHub Action Workflows.
-- [ ] Automatisierte Testläufe bei jedem Push.
+- [x] Erstellung eines GitHub Action Workflows.
+- [x] Automatisierte Testläufe bei jedem Push.
 - [ ] Berichterstattung über Testergebnisse.
 
 ## Fortschrittsbewertung

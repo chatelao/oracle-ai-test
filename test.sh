@@ -20,12 +20,13 @@ else
 fi
 
 # 3. Basic LLM connectivity test
-echo "Testing LLM (llama3) responsiveness..."
-RESPONSE=$(curl -s -X POST http://localhost:11434/api/generate -d '{
-  "model": "llama3",
-  "prompt": "Say hello world in SQL",
-  "stream": false
-}' | jq -r '.response' 2>/dev/null)
+LLM_MODEL=${LLM_MODEL:-llama3}
+echo "Testing LLM ($LLM_MODEL) responsiveness..."
+RESPONSE=$(curl -s -X POST http://localhost:11434/api/generate -d "{
+  \"model\": \"$LLM_MODEL\",
+  \"prompt\": \"Say hello world in SQL\",
+  \"stream\": false
+}" | jq -r '.response' 2>/dev/null)
 
 if [ -n "$RESPONSE" ]; then
     echo "[OK] LLM responded."
@@ -51,6 +52,41 @@ if command -v sql &> /dev/null; then
     else
         echo "[SKIP] DB_CONN_STR not set. Skipping DB test."
     fi
+fi
+
+# 5. Integration: LLM generates SQL and SQLcl executes it
+if command -v sql &> /dev/null && [ -n "$DB_CONN_STR" ]; then
+    echo "Integration Test: LLM generating SQL and executing via SQLcl..."
+
+    PROMPT="Generate a simple Oracle SQL SELECT statement to get the current date from dual. Return ONLY the SQL, no explanation."
+
+    INTEGRATION_RESPONSE=$(curl -s -X POST http://localhost:11434/api/generate -d "{
+      \"model\": \"$LLM_MODEL\",
+      \"prompt\": \"$PROMPT\",
+      \"stream\": false
+    }" | jq -r '.response' 2>/dev/null)
+
+    if [ -n "$INTEGRATION_RESPONSE" ]; then
+        # Simple extraction: remove possible markdown backticks and find the SQL statement
+        CLEAN_SQL=$(echo "$INTEGRATION_RESPONSE" | tr -d '`' | grep -iE "SELECT.*FROM" | head -n 1)
+
+        if [ -n "$CLEAN_SQL" ]; then
+            echo "Executing LLM generated SQL: $CLEAN_SQL"
+            SQL_RESULT=$(echo "$CLEAN_SQL" | sql -s "$DB_CONN_STR" | grep -v "connected")
+            if [ $? -eq 0 ]; then
+                echo "[OK] Integration test successful."
+                echo "Result: $SQL_RESULT"
+            else
+                echo "[FAIL] Failed to execute generated SQL."
+            fi
+        else
+            echo "[FAIL] Could not extract SQL from LLM response. Response was: $INTEGRATION_RESPONSE"
+        fi
+    else
+        echo "[FAIL] LLM did not respond for integration test."
+    fi
+else
+    echo "[SKIP] SQLcl or DB_CONN_STR missing. Skipping integration test."
 fi
 
 echo "=== Test Run Complete ==="
