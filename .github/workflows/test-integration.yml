@@ -36,7 +36,7 @@ jobs:
 
     - name: Start Services (Database and Ollama)
       run: |
-        docker-compose up -d
+        docker compose up -d
         # We start Ollama via docker-compose as defined in the project,
         # but the install/llm.sh might also be used for local setup.
         # For CI, we'll rely on docker-compose for the service.
