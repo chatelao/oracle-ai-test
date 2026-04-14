@@ -7,7 +7,7 @@ on:
     branches: [ main, master ]
 
 jobs:
-  test:
+  install-and-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -16,7 +16,13 @@ jobs:
     - name: Set up Environment
       run: |
         sudo apt-get update
-        sudo apt-get install -y jq curl
+        sudo apt-get install -y jq curl unzip
+
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
 
     - name: Check Scripts Syntax
       run: |
@@ -25,10 +31,48 @@ jobs:
         bash -n install/sqlcl.sh
         bash -n install/db_config.sh
 
-    - name: Run Test Script (Dry Run/Connectivity Check)
+    - name: Install SQLcl
+      run: bash install/sqlcl.sh
+
+    - name: Start Services (Database and Ollama)
       run: |
-        # This will mostly fail or skip in a standard GitHub Runner as Ollama/SQLcl/DB are missing.
-        # But it tests the script's ability to handle missing dependencies gracefully and generate a report.
+        docker-compose up -d
+        # We start Ollama via docker-compose as defined in the project,
+        # but the install/llm.sh might also be used for local setup.
+        # For CI, we'll rely on docker-compose for the service.
+
+    - name: Wait for Oracle Database
+      run: |
+        echo "Waiting for Oracle Database to be healthy..."
+        # The docker-compose has a healthcheck, we can wait for it.
+        MAX_RETRIES=60
+        COUNT=0
+        until [ "$(docker inspect --format='{{.State.Health.Status}}' oracle-db)" == "healthy" ]; do
+            sleep 10
+            COUNT=$((COUNT + 1))
+            if [ $COUNT -ge $MAX_RETRIES ]; then
+                echo "Error: Oracle Database failed to become healthy."
+                docker logs oracle-db
+                exit 1
+            fi
+            echo "Still waiting... ($((COUNT * 10))s)"
+        done
+        echo "Oracle Database is healthy."
+
+    - name: Pull LLM Model
+      run: |
+        # Use the local ollama command to talk to the container
+        # First install ollama cli if not present (install/llm.sh does this)
+        # But we need it to point to the docker container if we run it from host
+        # Actually, it's easier to just run it inside the container or via curl
+        docker exec ollama ollama pull llama3
+
+    - name: Run Test Script
+      env:
+        DB_CONN_STR: "system/password@localhost:1521/FREEPDB1"
+      run: |
+        # Ensure we can connect to the DB from the host
+        # The docker-compose maps 1521:1521
         bash test.sh
 
     - name: Upload Test Report to Summary

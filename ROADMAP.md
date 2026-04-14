@@ -10,9 +10,9 @@ Dieses Projekt zielt darauf ab, das Zusammenspiel zwischen einem lokalen Large L
 - [x] Installation und Konfiguration von Oracle SQLcl.
 
 ### 2. Installationsskripte (/install)
-- [x] Skript zur Installation des LLM.
+- [x] Skript zur Installation des LLM (verbessert für CI).
 - [x] Skript zur Konfiguration der Datenbankverbindung.
-- [x] Skript zur Einrichtung von SQLcl.
+- [x] Skript zur Einrichtung von SQLcl (automatisiert für CI).
 
 ### 3. Testskript-Entwicklung (test.sh)
 - [x] Entwicklung eines Basistests zur Kommunikation mit dem LLM.
@@ -21,8 +21,8 @@ Dieses Projekt zielt darauf ab, das Zusammenspiel zwischen einem lokalen Large L
 
 ### 4. CI/CD Integration
 - [x] Erstellung eines GitHub Action Workflows.
-- [x] Automatisierte Testläufe bei jedem Push.
+- [x] Automatisierte Testläufe bei jedem Push (verbessert: Services via Docker, automatisierte Installation).
 - [x] Berichterstattung über Testergebnisse (generiert `test-report.md` und zeigt es in GitHub Summaries an).
 
 ## Fortschrittsbewertung
-Der Fortschritt wird durch das Bestehen des `test.sh` Skripts in der CI/CD-Pipeline gemessen.
+Der Fortschritt wird durch das Bestehen des `test.sh` Skripts in der CI/CD-Pipeline gemessen. Die Pipeline wurde optimiert, um die notwendige Infrastruktur (Datenbank und LLM) während des Laufs bereitzustellen.
