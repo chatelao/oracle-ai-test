@@ -5,9 +5,9 @@ Dieses Projekt zielt darauf ab, das Zusammenspiel zwischen einem lokalen Large L
 ## Meilensteine
 
 ### 1. Umgebungsvorbereitung (Environment Setup)
-- [ ] Auswahl und Setup des lokalen LLM (z.B. Ollama, LocalAI).
-- [ ] Bereitstellung einer Oracle Datenbank (lokal oder Docker-basiert).
-- [ ] Installation und Konfiguration von Oracle SQLcl.
+- [x] Auswahl und Setup des lokalen LLM (Ollama).
+- [x] Bereitstellung einer Oracle Datenbank (Docker-basiert mit `docker-compose.yml`).
+- [x] Installation und Konfiguration von Oracle SQLcl.
 
 ### 2. Installationsskripte (/install)
 - [x] Skript zur Installation des LLM.
@@ -22,7 +22,7 @@ Dieses Projekt zielt darauf ab, das Zusammenspiel zwischen einem lokalen Large L
 ### 4. CI/CD Integration
 - [x] Erstellung eines GitHub Action Workflows.
 - [x] Automatisierte Testläufe bei jedem Push.
-- [ ] Berichterstattung über Testergebnisse.
+- [x] Berichterstattung über Testergebnisse (generiert `test-report.md` und zeigt es in GitHub Summaries an).
 
 ## Fortschrittsbewertung
 Der Fortschritt wird durch das Bestehen des `test.sh` Skripts in der CI/CD-Pipeline gemessen.
