@@ -46,3 +46,10 @@ else
 fi
 
 echo "SQLcl setup script finished."
+
+# Output version
+if command -v sql &> /dev/null; then
+    sql -v
+elif [ -n "$SQLCL_BIN" ]; then
+    "$SQLCL_BIN" -v
+fi
