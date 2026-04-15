@@ -20,7 +20,7 @@ Dieses Repository dient dem Testen des Zusammenspiels eines lokalen LLM mit eine
 ### 1. Umgebung starten
 Um die Datenbank und Ollama zu starten, verwende Docker Compose:
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ### 2. LLM Modell vorbereiten

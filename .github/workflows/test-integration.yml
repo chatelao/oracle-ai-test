@@ -37,14 +37,14 @@ jobs:
     - name: Start Services (Database and Ollama)
       run: |
         docker compose up -d
-        # We start Ollama via docker-compose as defined in the project,
+        # We start Ollama via docker compose as defined in the project,
         # but the install/llm.sh might also be used for local setup.
-        # For CI, we'll rely on docker-compose for the service.
+        # For CI, we'll rely on docker compose for the service.
 
     - name: Wait for Oracle Database
       run: |
         echo "Waiting for Oracle Database to be healthy..."
-        # The docker-compose has a healthcheck, we can wait for it.
+        # The docker compose has a healthcheck, we can wait for it.
         MAX_RETRIES=60
         COUNT=0
         until [ "$(docker inspect --format='{{.State.Health.Status}}' oracle-db)" == "healthy" ]; do
@@ -72,7 +72,7 @@ jobs:
         DB_CONN_STR: "system/password@localhost:1521/FREEPDB1"
       run: |
         # Ensure we can connect to the DB from the host
-        # The docker-compose maps 1521:1521
+        # The docker compose maps 1521:1521
         bash test.sh
 
     - name: Upload Test Report to Summary
