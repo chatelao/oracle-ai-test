@@ -11,8 +11,15 @@ else
     # In CI we might want to install it, but usually the runner has it or we install it in the workflow
 fi
 
-# Check if sqlcl is already in path
+# Check if sqlcl is already in path and is actually Oracle SQLcl
+IS_SQLCL=false
 if command -v sql &> /dev/null; then
+    if sql -version 2>&1 | grep -q "SQLcl"; then
+        IS_SQLCL=true
+    fi
+fi
+
+if [ "$IS_SQLCL" = true ]; then
     echo "SQLcl (sql) is already installed."
 else
     echo "SQLcl not found in PATH. Attempting to install..."
@@ -39,6 +46,7 @@ else
             echo "$SQLCL_BIN_DIR" >> "$GITHUB_PATH"
             echo "Added $SQLCL_BIN_DIR to GITHUB_PATH"
         fi
+        IS_SQLCL=true
     else
         echo "Error: Could not find sql binary after installation."
         exit 1
@@ -48,8 +56,8 @@ fi
 echo "SQLcl setup script finished."
 
 # Output version
-if command -v sql &> /dev/null; then
-    sql -v
-elif [ -n "$SQLCL_BIN" ]; then
-    "$SQLCL_BIN" -v
+if [ -n "$SQLCL_BIN" ]; then
+    "$SQLCL_BIN" -version
+elif [ "$IS_SQLCL" = true ]; then
+    sql -version
 fi
