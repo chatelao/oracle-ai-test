@@ -38,3 +38,4 @@ echo "Pulling $LLM_MODEL model (this might take a while)..."
 ollama pull "$LLM_MODEL"
 
 echo "Ollama setup complete."
+ollama --version
