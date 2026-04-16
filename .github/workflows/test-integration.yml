@@ -13,6 +13,31 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Cache SQLcl
+      uses: actions/cache@v4
+      with:
+        path: ~/sqlcl
+        key: ${{ runner.os }}-sqlcl-latest
+
+    - name: Cache Ollama Models
+      uses: actions/cache@v4
+      with:
+        path: ./ollama_data
+        key: ${{ runner.os }}-ollama-llama3
+
+    - name: Cache Docker Images
+      id: cache-docker-images
+      uses: actions/cache@v4
+      with:
+        path: /tmp/docker-images
+        key: ${{ runner.os }}-docker-images-${{ hashFiles('docker-compose.yml') }}
+
+    - name: Load Docker Images
+      run: |
+        if [ -f /tmp/docker-images/images.tar ]; then
+          docker load -i /tmp/docker-images/images.tar
+        fi
+
     - name: Set up Environment
       run: |
         sudo apt-get update
@@ -65,7 +90,14 @@ jobs:
         # First install ollama cli if not present (install/llm.sh does this)
         # But we need it to point to the docker container if we run it from host
         # Actually, it's easier to just run it inside the container or via curl
-        docker exec ollama ollama pull llama3
+
+        # Check if the model already exists to avoid redundant pull
+        if ! docker exec ollama ollama list | grep -q "llama3"; then
+          echo "llama3 model not found in cache. Pulling..."
+          docker exec ollama ollama pull llama3
+        else
+          echo "llama3 model found in cache. Skipping pull."
+        fi
 
     - name: Run Test Script
       env:
@@ -74,6 +106,12 @@ jobs:
         # Ensure we can connect to the DB from the host
         # The docker compose maps 1521:1521
         bash test.sh
+
+    - name: Save Docker Images
+      if: steps.cache-docker-images.outputs.cache-hit != 'true'
+      run: |
+        mkdir -p /tmp/docker-images
+        docker save container-registry.oracle.com/database/free:latest ollama/ollama:latest -o /tmp/docker-images/images.tar
 
     - name: Upload Test Report to Summary
       if: always()

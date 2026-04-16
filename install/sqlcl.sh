@@ -38,8 +38,13 @@ else
     SQLCL_BIN=$(find "$SQLCL_DIR" -name "sql" -type f | grep "/bin/sql" | head -n 1)
     if [ -n "$SQLCL_BIN" ]; then
         SQLCL_BIN_DIR=$(dirname "$SQLCL_BIN")
-        echo "SQLcl installed to $SQLCL_BIN_DIR"
-        echo "Add this to your PATH: export PATH=\$PATH:$SQLCL_BIN_DIR"
+        echo "SQLcl found at $SQLCL_BIN_DIR"
+
+        # If not already in PATH, add it
+        if [[ ":$PATH:" != *":$SQLCL_BIN_DIR:"* ]]; then
+            echo "Adding $SQLCL_BIN_DIR to PATH"
+            export PATH="$PATH:$SQLCL_BIN_DIR"
+        fi
 
         # If in GitHub Actions, add to GITHUB_PATH
         if [ -n "$GITHUB_PATH" ]; then
@@ -48,7 +53,7 @@ else
         fi
         IS_SQLCL=true
     else
-        echo "Error: Could not find sql binary after installation."
+        echo "Error: Could not find sql binary in $SQLCL_DIR."
         exit 1
     fi
 fi

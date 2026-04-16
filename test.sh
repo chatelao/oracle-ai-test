@@ -62,8 +62,9 @@ if command -v sql &> /dev/null; then
 
     # Try a simple select
     if [ -n "$DB_CONN_STR" ]; then
-        DB_VERSION=$(echo "SELECT version FROM v\$instance;" | sql -s "$DB_CONN_STR" | grep -E "[0-9]+\.[0-9]+")
-        if [ -n "$DB_VERSION" ]; then
+        # Use pipefail to catch sql errors
+        DB_VERSION=$(set -o pipefail; echo "SELECT version FROM v\$instance;" | sql -s "$DB_CONN_STR" | grep -E "[0-9]+\.[0-9]+")
+        if [ $? -eq 0 ] && [ -n "$DB_VERSION" ]; then
             echo "[OK] Database connection successful. Version: $DB_VERSION"
             log_result "DB Connectivity" "✅ OK" "Database version: $DB_VERSION"
         else
@@ -96,13 +97,18 @@ if command -v sql &> /dev/null && [ -n "$DB_CONN_STR" ]; then
 
         if [ -n "$CLEAN_SQL" ]; then
             echo "Executing LLM generated SQL: $CLEAN_SQL"
-            SQL_RESULT=$(echo "$CLEAN_SQL" | sql -s "$DB_CONN_STR" | grep -v "connected")
-            if [ $? -eq 0 ]; then
+            # Capture output and exit code
+            SQL_OUTPUT=$(echo "$CLEAN_SQL" | sql -s "$DB_CONN_STR" 2>&1)
+            SQL_EXIT_CODE=$?
+            CLEAN_RESULT=$(echo "$SQL_OUTPUT" | grep -v "connected" | grep -v "USER          =" | grep -v "URL           =" | grep -v "Error Message =" | xargs)
+
+            if [ $SQL_EXIT_CODE -eq 0 ] && [[ ! "$SQL_OUTPUT" =~ "ORA-" ]]; then
                 echo "[OK] Integration test successful."
-                echo "Result: $SQL_RESULT"
+                echo "Result: $CLEAN_RESULT"
                 log_result "Integration Test" "✅ OK" "SQL executed successfully"
             else
                 echo "[FAIL] Failed to execute generated SQL."
+                echo "Error: $SQL_OUTPUT"
                 log_result "Integration Test" "❌ FAIL" "Failed to execute generated SQL"
             fi
         else
