@@ -93,7 +93,7 @@ if command -v sql &> /dev/null && [ -n "$DB_CONN_STR" ]; then
 
     if [ -n "$INTEGRATION_RESPONSE" ]; then
         # Simple extraction: remove possible markdown backticks and find the SQL statement
-        CLEAN_SQL=$(echo "$INTEGRATION_RESPONSE" | tr -d '`' | grep -iE "SELECT.*FROM" | head -n 1)
+        CLEAN_SQL=$(echo "$INTEGRATION_RESPONSE" | tr -d '`' | tr '\n' ' ' | grep -iE "SELECT.*FROM" | sed -e 's/.*\(SELECT.*FROM[^;]*\).*/\1/' | head -n 1)
 
         if [ -n "$CLEAN_SQL" ]; then
             echo "Executing LLM generated SQL: $CLEAN_SQL"
@@ -122,6 +122,51 @@ if command -v sql &> /dev/null && [ -n "$DB_CONN_STR" ]; then
 else
     echo "[SKIP] SQLcl or DB_CONN_STR missing. Skipping integration test."
     log_result "Integration Test" "⏭️ SKIP" "SQLcl or DB_CONN_STR missing"
+fi
+
+# 6. Integration: LLM queries SCOTT schema
+if command -v sql &> /dev/null && [ -n "$DB_CONN_STR" ]; then
+    echo "Integration Test: LLM querying SCOTT.EMP table..."
+
+    PROMPT="Generate an Oracle SQL SELECT statement to find the name (ENAME) and salary (SAL) of all employees in department 10 from the SCOTT.EMP table. Return ONLY the SQL, no explanation."
+
+    SCOTT_RESPONSE=$(curl -s -X POST http://localhost:11434/api/generate -d "{
+      \"model\": \"$LLM_MODEL\",
+      \"prompt\": \"$PROMPT\",
+      \"stream\": false
+    }" | jq -r '.response' 2>/dev/null)
+
+    if [ -n "$SCOTT_RESPONSE" ]; then
+        # Simple extraction: remove possible markdown backticks and find the SQL statement
+        CLEAN_SQL=$(echo "$SCOTT_RESPONSE" | tr -d '`' | tr '\n' ' ' | grep -iE "SELECT.*FROM" | sed -e 's/.*\(SELECT.*FROM[^;]*\).*/\1/' | head -n 1)
+
+        if [ -n "$CLEAN_SQL" ]; then
+            echo "Executing LLM generated SQL on SCOTT schema: $CLEAN_SQL"
+            # Capture output and exit code
+            SQL_OUTPUT=$(echo "$CLEAN_SQL" | sql -s "$DB_CONN_STR" 2>&1)
+            SQL_EXIT_CODE=$?
+            CLEAN_RESULT=$(echo "$SQL_OUTPUT" | grep -v "connected" | grep -v "USER          =" | grep -v "URL           =" | grep -v "Error Message =" | xargs)
+
+            if [ $SQL_EXIT_CODE -eq 0 ] && [[ ! "$SQL_OUTPUT" =~ "ORA-" ]]; then
+                echo "[OK] SCOTT integration test successful."
+                echo "Result: $CLEAN_RESULT"
+                log_result "SCOTT Integration" "✅ OK" "SQL executed successfully on SCOTT.EMP"
+            else
+                echo "[FAIL] Failed to execute generated SQL on SCOTT schema."
+                echo "Error: $SQL_OUTPUT"
+                log_result "SCOTT Integration" "❌ FAIL" "Failed to execute generated SQL on SCOTT.EMP"
+            fi
+        else
+            echo "[FAIL] Could not extract SQL from LLM response. Response was: $SCOTT_RESPONSE"
+            log_result "SCOTT Integration" "❌ FAIL" "Could not extract SQL from LLM response"
+        fi
+    else
+        echo "[FAIL] LLM did not respond for SCOTT integration test."
+        log_result "SCOTT Integration" "❌ FAIL" "LLM did not respond"
+    fi
+else
+    echo "[SKIP] SQLcl or DB_CONN_STR missing. Skipping SCOTT integration test."
+    log_result "SCOTT Integration" "⏭️ SKIP" "SQLcl or DB_CONN_STR missing"
 fi
 
 echo "" >> "$REPORT_FILE"
