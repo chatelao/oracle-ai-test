@@ -13,11 +13,13 @@ Dieses Projekt zielt darauf ab, das Zusammenspiel zwischen einem lokalen Large L
 - [x] Skript zur Installation des LLM (verbessert für CI).
 - [x] Skript zur Konfiguration der Datenbankverbindung.
 - [x] Skript zur Einrichtung von SQLcl (automatisiert für CI).
+- [x] Skript zur Installation des SCOTT/TIGER Schemas (`install/scott.sh`).
 
 ### 3. Testskript-Entwicklung (test.sh)
 - [x] Entwicklung eines Basistests zur Kommunikation mit dem LLM.
 - [x] Entwicklung eines Basistests zur Ausführung von SQL-Befehlen via SQLcl.
 - [x] Integration: LLM generiert SQL, SQLcl führt es aus, Ergebnisse werden validiert.
+- [x] Integration: LLM generiert SQL gegen das SCOTT Schema und SQLcl führt es aus.
 
 ### 4. CI/CD Integration
 - [x] Erstellung eines GitHub Action Workflows.
