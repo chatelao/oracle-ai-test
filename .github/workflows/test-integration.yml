@@ -119,3 +119,10 @@ jobs:
         if [ -f "test-report.md" ]; then
           cat test-report.md >> $GITHUB_STEP_SUMMARY
         fi
+
+    - name: Upload Test Report as Artifact
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-report
+        path: test-report.md
