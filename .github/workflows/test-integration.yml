@@ -13,6 +13,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Free Disk Space
+      run: |
+        sudo rm -rf /tmp/docker-images/images.tar 2>/dev/null || true
+        docker system prune -af
+
     - name: Cache SQLcl
       uses: actions/cache@v4
       with:
@@ -36,6 +41,7 @@ jobs:
       run: |
         if [ -f /tmp/docker-images/images.tar ]; then
           docker load -i /tmp/docker-images/images.tar
+          rm /tmp/docker-images/images.tar
         fi
 
     - name: Set up Environment
