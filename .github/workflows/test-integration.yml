@@ -82,7 +82,21 @@ jobs:
             fi
             echo "Still waiting... ($((COUNT * 10))s)"
         done
-        echo "Oracle Database is healthy."
+        echo "Oracle Database container is healthy."
+
+        echo "Waiting for Oracle Database to accept connections..."
+        # Additional check to ensure the listener is ready and we can connect
+        COUNT=0
+        until echo "SELECT 1 FROM DUAL;" | sql -L -s system/password@127.0.0.1:1521/FREEPDB1 > /dev/null 2>&1; do
+            sleep 5
+            COUNT=$((COUNT + 1))
+            if [ $COUNT -ge 24 ]; then
+                echo "Error: Oracle Database failed to accept connections after 2 minutes."
+                exit 1
+            fi
+            echo "Still waiting for connection... ($((COUNT * 5))s)"
+        done
+        echo "Oracle Database is ready for connections."
 
     - name: Pull LLM Model
       run: |
@@ -99,9 +113,15 @@ jobs:
           echo "llama3 model found in cache. Skipping pull."
         fi
 
+    - name: Install SCOTT Schema
+      env:
+        DB_CONN_STR: "system/password@127.0.0.1:1521/FREEPDB1"
+      run: |
+        bash install/scott.sh
+
     - name: Run Test Script
       env:
-        DB_CONN_STR: "system/password@localhost:1521/FREEPDB1"
+        DB_CONN_STR: "system/password@127.0.0.1:1521/FREEPDB1"
       run: |
         # Ensure we can connect to the DB from the host
         # The docker compose maps 1521:1521
