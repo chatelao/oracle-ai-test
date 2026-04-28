@@ -29,8 +29,14 @@ fi
 # 2. Check SQLcl
 echo "Checking SQLcl..."
 if command -v sql &> /dev/null; then
-    echo "[OK] SQLcl is installed."
-    log_result "Check SQLcl" "✅ OK" "SQLcl is installed"
+    if sql -version 2>&1 | grep -q "SQLcl"; then
+        echo "[OK] SQLcl is installed and verified."
+        log_result "Check SQLcl" "✅ OK" "SQLcl is installed"
+    else
+        echo "[FAIL] 'sql' command found but it is NOT Oracle SQLcl."
+        log_result "Check SQLcl" "❌ FAIL" "'sql' is not Oracle SQLcl"
+        # We might want to exit or skip DB tests
+    fi
 else
     echo "[WARN] SQLcl (sql) not found in PATH."
     log_result "Check SQLcl" "⚠️ WARN" "SQLcl (sql) not found in PATH"
@@ -63,13 +69,19 @@ if command -v sql &> /dev/null; then
     # Try a simple select
     if [ -n "$DB_CONN_STR" ]; then
         # Use pipefail to catch sql errors
-        DB_VERSION=$(set -o pipefail; echo "SELECT version FROM v\$instance;" | sql -s "$DB_CONN_STR" | grep -E "[0-9]+\.[0-9]+")
-        if [ $? -eq 0 ] && [ -n "$DB_VERSION" ]; then
+        DB_OUTPUT=$(set -o pipefail; echo "SELECT version FROM v\$instance;" | sql -L -s "$DB_CONN_STR" 2>&1)
+        DB_EXIT_CODE=$?
+        DB_VERSION=$(echo "$DB_OUTPUT" | grep -E "[0-9]+\.[0-9]+")
+        if [ $DB_EXIT_CODE -eq 0 ] && [ -n "$DB_VERSION" ]; then
             echo "[OK] Database connection successful. Version: $DB_VERSION"
             log_result "DB Connectivity" "✅ OK" "Database version: $DB_VERSION"
         else
             echo "[FAIL] Could not connect to database or retrieve version."
-            log_result "DB Connectivity" "❌ FAIL" "Could not connect to database"
+            echo "Error Details: $DB_OUTPUT"
+            # Extract ORA error if present
+            ORA_ERR=$(echo "$DB_OUTPUT" | grep -o "ORA-[0-9]\+" | head -n 1)
+            [ -z "$ORA_ERR" ] && ORA_ERR="Unknown Error"
+            log_result "DB Connectivity" "❌ FAIL" "Connection failed ($ORA_ERR)"
         fi
     else
         echo "[SKIP] DB_CONN_STR not set. Skipping DB test."
@@ -98,7 +110,7 @@ if command -v sql &> /dev/null && [ -n "$DB_CONN_STR" ]; then
         if [ -n "$CLEAN_SQL" ]; then
             echo "Executing LLM generated SQL: $CLEAN_SQL"
             # Capture output and exit code
-            SQL_OUTPUT=$(echo "$CLEAN_SQL" | sql -s "$DB_CONN_STR" 2>&1)
+            SQL_OUTPUT=$(echo "$CLEAN_SQL" | sql -L -s "$DB_CONN_STR" 2>&1)
             SQL_EXIT_CODE=$?
             CLEAN_RESULT=$(echo "$SQL_OUTPUT" | grep -v "connected" | grep -v "USER          =" | grep -v "URL           =" | grep -v "Error Message =" | xargs)
 
@@ -143,7 +155,7 @@ if command -v sql &> /dev/null && [ -n "$DB_CONN_STR" ]; then
         if [ -n "$CLEAN_SQL" ]; then
             echo "Executing LLM generated SQL on SCOTT schema: $CLEAN_SQL"
             # Capture output and exit code
-            SQL_OUTPUT=$(echo "$CLEAN_SQL" | sql -s "$DB_CONN_STR" 2>&1)
+            SQL_OUTPUT=$(echo "$CLEAN_SQL" | sql -L -s "$DB_CONN_STR" 2>&1)
             SQL_EXIT_CODE=$?
             CLEAN_RESULT=$(echo "$SQL_OUTPUT" | grep -v "connected" | grep -v "USER          =" | grep -v "URL           =" | grep -v "Error Message =" | xargs)
 

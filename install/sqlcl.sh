@@ -42,8 +42,8 @@ else
 
         # If not already in PATH, add it
         if [[ ":$PATH:" != *":$SQLCL_BIN_DIR:"* ]]; then
-            echo "Adding $SQLCL_BIN_DIR to PATH"
-            export PATH="$PATH:$SQLCL_BIN_DIR"
+            echo "Adding $SQLCL_BIN_DIR to PATH (prepended)"
+            export PATH="$SQLCL_BIN_DIR:$PATH"
         fi
 
         # If in GitHub Actions, add to GITHUB_PATH
