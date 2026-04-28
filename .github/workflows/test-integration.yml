@@ -87,11 +87,11 @@ jobs:
         echo "Ensuring SYSTEM account is unlocked and disabling failed login limit..."
         # This prevents the account from locking during the startup/polling phase.
         # We use sqlplus as the oracle user inside the container.
-        docker exec -u oracle oracle-db bash -c "export ORACLE_SID=FREE; sqlplus -S / as sysdba <<EOF
-ALTER USER system ACCOUNT UNLOCK;
-ALTER PROFILE DEFAULT LIMIT FAILED_LOGIN_ATTEMPTS UNLIMITED;
-EXIT;
-EOF" || true
+        docker exec -i -u oracle -e ORACLE_SID=FREE oracle-db sqlplus -S / as sysdba <<'EOF'
+          ALTER USER system ACCOUNT UNLOCK;
+          ALTER PROFILE DEFAULT LIMIT FAILED_LOGIN_ATTEMPTS UNLIMITED;
+          EXIT;
+        EOF
 
         echo "Waiting for Oracle Database to accept connections..."
         # Additional check to ensure the listener is ready and we can connect
@@ -106,10 +106,10 @@ EOF" || true
                 echo "Last connection error:"
                 echo "$CONNECTION_OUTPUT"
                 # If still locked, try to unlock again as a last resort
-                docker exec -u oracle oracle-db bash -c "export ORACLE_SID=FREE; sqlplus -S / as sysdba <<EOF
-ALTER USER system ACCOUNT UNLOCK;
-EXIT;
-EOF" || true
+                docker exec -i -u oracle -e ORACLE_SID=FREE oracle-db sqlplus -S / as sysdba <<'EOF'
+                  ALTER USER system ACCOUNT UNLOCK;
+                  EXIT;
+                EOF
                 exit 1
             fi
             echo "Still waiting for connection... ($((COUNT * 30))s)"
