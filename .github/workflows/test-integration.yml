@@ -87,11 +87,14 @@ jobs:
         echo "Waiting for Oracle Database to accept connections..."
         # Additional check to ensure the listener is ready and we can connect
         COUNT=0
-        until echo "SELECT 1 FROM DUAL;" | sql -L -s system/password@127.0.0.1:1521/FREEPDB1 > /dev/null 2>&1; do
+        MAX_CONN_RETRIES=60
+        until CONNECTION_OUTPUT=$(echo "SELECT 1 FROM DUAL;" | sql -L -s system/password@127.0.0.1:1521/FREEPDB1 2>&1); do
             sleep 5
             COUNT=$((COUNT + 1))
-            if [ $COUNT -ge 24 ]; then
-                echo "Error: Oracle Database failed to accept connections after 2 minutes."
+            if [ $COUNT -ge $MAX_CONN_RETRIES ]; then
+                echo "Error: Oracle Database failed to accept connections after 5 minutes."
+                echo "Last connection error:"
+                echo "$CONNECTION_OUTPUT"
                 exit 1
             fi
             echo "Still waiting for connection... ($((COUNT * 5))s)"
