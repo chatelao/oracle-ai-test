@@ -15,7 +15,7 @@ echo "Installing SCOTT schema using $DB_CONN_STR..."
 
 # Check if sqlcl is in PATH
 if command -v sql &> /dev/null; then
-    sql -s "$DB_CONN_STR" @"$SCRIPT_DIR/scott.sql"
+    sql -L -s "$DB_CONN_STR" @"$SCRIPT_DIR/scott.sql"
     if [ $? -eq 0 ]; then
         echo "SCOTT schema installed successfully."
     else

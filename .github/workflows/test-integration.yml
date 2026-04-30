@@ -46,7 +46,7 @@ jobs:
     - name: Set up Environment
       run: |
         sudo apt-get update
-        sudo apt-get install -y jq curl unzip
+        sudo apt-get install -y jq curl unzip zstd
 
     - name: Set up Java
       uses: actions/setup-java@v4
@@ -93,10 +93,12 @@ jobs:
         # This prevents the account from locking during the startup/polling phase.
         # We use sqlplus as the oracle user inside the container.
         docker exec -i -u oracle -e ORACLE_SID=FREE oracle-db sqlplus -S / as sysdba <<'EOF'
-ALTER USER system ACCOUNT UNLOCK;
-ALTER PROFILE DEFAULT LIMIT FAILED_LOGIN_ATTEMPTS UNLIMITED;
-EXIT;
-EOF
+        ALTER USER system IDENTIFIED BY password ACCOUNT UNLOCK;
+        ALTER PROFILE DEFAULT LIMIT FAILED_LOGIN_ATTEMPTS UNLIMITED;
+        ALTER SESSION SET CONTAINER = FREEPDB1;
+        ALTER USER system IDENTIFIED BY password ACCOUNT UNLOCK;
+        EXIT;
+        EOF
 
         echo "Waiting for Oracle Database to accept connections..."
         # Additional check to ensure the listener is ready and we can connect
@@ -112,9 +114,9 @@ EOF
                 echo "$CONNECTION_OUTPUT"
                 # If still locked, try to unlock again as a last resort
                 docker exec -i -u oracle -e ORACLE_SID=FREE oracle-db sqlplus -S / as sysdba <<'EOF'
-ALTER USER system ACCOUNT UNLOCK;
-EXIT;
-EOF
+        ALTER USER system ACCOUNT UNLOCK;
+        EXIT;
+        EOF
                 exit 1
             fi
             echo "Still waiting for connection... ($((COUNT * 30))s)"
