@@ -14,14 +14,14 @@ echo "|-------|------|--------|-----|--------|" >> "$REPORT_FILE"
 declare -a PROMPTS=(
     "List all employees from SCOTT.EMP table."
     "List employees from SCOTT.EMP with a salary (SAL) greater than 2000."
-    "List employee names (ENAME) and their department names (DNAME) by joining SCOTT.EMP and SCOTT.DEPT."
-    "Count the number of employees in each department. Show DEPTNO and the count."
+    "List employee names (ENAME) and their department names (DNAME) by joining SCOTT.EMP and SCOTT.DEPT on DEPTNO."
+    "Count the number of employees in each department. Show DEPTNO and the count from SCOTT.EMP."
     "Find the average salary (SAL) for each job (JOB) in the SCOTT.EMP table."
-    "Find the name (ENAME) of the highest paid employee in each department (DEPTNO)."
-    "List employees (ENAME) who earn more than their managers. You'll need to join SCOTT.EMP with itself."
+    "Find the name (ENAME) of the highest paid employee in each department (DEPTNO) from SCOTT.EMP."
+    "List employees (ENAME) who earn more than their managers. Join SCOTT.EMP with itself on MGR = EMPNO."
     "Find departments (DNAME) from SCOTT.DEPT that have no employees in SCOTT.EMP."
     "List the top 3 highest earning employees (ENAME, SAL) from the SCOTT.EMP table."
-    "For each department, show the employee name, hire date, and a running total of salaries (cumulative sum) ordered by hire date."
+    "For each department, show the employee name (ENAME), hire date (HIREDATE), and a running total of salaries (SAL) (cumulative sum) ordered by hire date."
 )
 
 run_test() {
@@ -29,7 +29,12 @@ run_test() {
     local task=$2
     echo "Running Level $level: $task"
 
-    PROMPT="Task: $task. Return ONLY the Oracle SQL SELECT statement, no explanation, no markdown backticks. Use SCOTT schema prefix for tables."
+    PROMPT="Task: $task.
+    Context: Oracle Database, SCOTT schema.
+    Tables:
+    - SCOTT.EMP (EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO)
+    - SCOTT.DEPT (DEPTNO, DNAME, LOC)
+    Requirement: Return ONLY the Oracle SQL SELECT statement. No explanation. No markdown backticks. No trailing characters."
 
     RESPONSE=$(curl -s -X POST http://127.0.0.1:11434/api/generate -d "{
       \"model\": \"$LLM_MODEL\",
@@ -42,8 +47,8 @@ run_test() {
         return
     fi
 
-    # Extraction - case insensitive search for SELECT ... FROM
-    CLEAN_SQL=$(echo "$RESPONSE" | tr -d '`' | tr '\n' ' ' | sed -e 's/.*\(\(SELECT\|select\).*\(FROM\|from\)[^;]*\).*/\1/' | head -n 1)
+    # Extraction - case insensitive search for SELECT ... FROM, and remove trailing garbage
+    CLEAN_SQL=$(echo "$RESPONSE" | tr -d '`' | tr '\n' ' ' | sed -e 's/.*\(\(SELECT\|select\).*\(FROM\|from\)[^;]*\).*/\1/' | sed 's/)[^)]*$//' | sed 's/;.*//' | tr -s ' ' | sed 's/^ //;s/ $//')
 
     if [ -z "$CLEAN_SQL" ]; then
         echo "| $level | $task | ❌ FAIL | Could not extract SQL | $RESPONSE |" >> "$REPORT_FILE"
@@ -55,7 +60,7 @@ run_test() {
     SQL_EXIT_CODE=$?
 
     # Remove connection info and extra whitespace
-    CLEAN_RESULT=$(echo "$SQL_OUTPUT" | grep -v "connected" | grep -v "USER          =" | grep -v "URL           =" | grep -v "Error Message =" | xargs | cut -c1-100)
+    CLEAN_RESULT=$(echo "$SQL_OUTPUT" | grep -v "connected" | grep -v "USER          =" | grep -v "URL           =" | grep -v "Error Message =" | tr -d '\r' | tr '\n' ' ' | tr -s ' ' | sed 's/^ //;s/ $//' | cut -c1-100)
 
     if [ $SQL_EXIT_CODE -eq 0 ] && [[ ! "$SQL_OUTPUT" =~ "ORA-" ]]; then
         echo "| $level | $task | ✅ OK | \`$CLEAN_SQL\` | $CLEAN_RESULT |" >> "$REPORT_FILE"
