@@ -178,23 +178,57 @@ jobs:
       run: |
         bash test_complexity.sh
 
+    - name: Setup Pages
+      if: always()
+      uses: actions/configure-pages@v5
+
     - name: Prepare GitHub Pages
       if: always()
       run: |
         mkdir -p _site
-        echo "<html><head><title>Test Results</title><style>body{font-family:sans-serif;margin:2em;}table{border-collapse:collapse;}th,td{border:1px solid #ccc;padding:8px;text-align:left;}pre{background:#f4f4f4;padding:10px;overflow:auto;}</style></head><body>" > _site/index.html
-        echo "<h1>LLM x Oracle SQLcl Integration Test Results</h1>" >> _site/index.html
+        cat > _site/index.html <<EOF
+        <html><head><title>Test Results</title><style>
+        body{font-family:sans-serif;margin:2em;line-height:1.6;color:#333;max-width:1200px;margin:auto;}
+        table{border-collapse:collapse;width:100%;margin-bottom:2em;}
+        th,td{border:1px solid #ddd;padding:12px;text-align:left;}
+        th{background-color:#f8f9fa;}
+        tr:nth-child(even){background-color:#f2f2f2;}
+        h1,h2{color:#0056b3;}
+        pre{background:#f4f4f4;padding:10px;overflow:auto;border-radius:4px;}
+        .status-ok{color:green;font-weight:bold;}
+        .status-fail{color:red;font-weight:bold;}
+        </style></head><body>
+        <h1>LLM x Oracle SQLcl Integration Test Results</h1>
+        <p>Generated on: $(date)</p>
+        <hr>
+EOF
 
-        if [ -f "test-report.md" ]; then
-          echo "<h2>Integration Test Report</h2>" >> _site/index.html
-          # Simple MD table to HTML conversion for the report
-          cat test-report.md | sed 's/^# \(.*\)/<h1>\1<\/h1>/' | sed 's/^## \(.*\)/<h2>\1<\/h2>/' | sed 's/|/<td>/g' | sed 's/$/<\/tr>/' | sed 's/^<td>/<tr><td>/' >> _site/index.html
-        fi
+        # Convert Markdown to basic HTML tables
+        convert_md_to_html() {
+          local file=$1
+          if [ -f "$file" ]; then
+            # Extract headers and content
+            cat "$file" | python3 -c "
+import sys, re
+lines = sys.stdin.readlines()
+for line in lines:
+    line = line.strip()
+    if not line: continue
+    if line.startswith('# '): print(f'<h1>{line[2:]}</h1>')
+    elif line.startswith('## '): print(f'<h2>{line[3:]}</h2>')
+    elif '|' in line and '---' not in line:
+        cells = [c.strip() for c in line.split('|') if c.strip() or line.startswith('|')]
+        if not cells: continue
+        print('<tr>' + ''.join([f'<td>{c}</td>' for c in cells]) + '</tr>')
+    elif '---' in line and '|' in line:
+        print('<table class=\"table\">')
+" | sed 's/<tr>/<tbody><tr>/' | sed '1,/<table/s/<tbody>//' | sed 's/<\/tr>$/<\/tr><\/tbody>/' >> _site/index.html
+            echo "</table>" >> _site/index.html
+          fi
+        }
 
-        if [ -f "complexity-report.md" ]; then
-          echo "<h2>Complexity Test Report</h2>" >> _site/index.html
-          cat complexity-report.md | sed 's/^# \(.*\)/<h1>\1<\/h1>/' | sed 's/^## \(.*\)/<h2>\1<\/h2>/' | sed 's/|/<td>/g' | sed 's/$/<\/tr>/' | sed 's/^<td>/<tr><td>/' >> _site/index.html
-        fi
+        [ -f "test-report.md" ] && convert_md_to_html "test-report.md"
+        [ -f "complexity-report.md" ] && convert_md_to_html "complexity-report.md"
 
         echo "</body></html>" >> _site/index.html
 

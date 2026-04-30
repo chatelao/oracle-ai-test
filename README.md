@@ -50,3 +50,4 @@ Die Testergebnisse werden bei jedem Push auf den `main` Branch automatisch auf G
 **Hinweis:** Damit dies funktioniert, muss GitHub Pages in den Repository-Einstellungen aktiviert sein:
 1. Gehe zu **Settings > Pages**.
 2. Wähle unter **Build and deployment > Source** die Option **GitHub Actions** aus.
+3. Nach der ersten erfolgreichen Ausführung des Workflows auf dem `main` Branch ist die Seite unter `https://<user>.github.io/<repo>/` erreichbar.
