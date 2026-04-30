@@ -42,8 +42,8 @@ run_test() {
         return
     fi
 
-    # Extraction
-    CLEAN_SQL=$(echo "$RESPONSE" | tr -d '`' | tr '\n' ' ' | sed -e 's/.*\(SELECT.*FROM[^;]*\).*/\1/' | head -n 1)
+    # Extraction - case insensitive search for SELECT ... FROM
+    CLEAN_SQL=$(echo "$RESPONSE" | tr -d '`' | tr '\n' ' ' | sed -e 's/.*\(\(SELECT\|select\).*\(FROM\|from\)[^;]*\).*/\1/' | head -n 1)
 
     if [ -z "$CLEAN_SQL" ]; then
         echo "| $level | $task | ❌ FAIL | Could not extract SQL | $RESPONSE |" >> "$REPORT_FILE"

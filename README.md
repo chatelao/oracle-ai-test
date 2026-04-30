@@ -38,3 +38,15 @@ Starte das Haupt-Testskript:
 bash test.sh
 ```
 Die Ergebnisse werden in `test-report.md` gespeichert.
+
+Zusätzlich gibt es Komplexitätstests:
+```bash
+bash test_complexity.sh
+```
+Die Ergebnisse werden in `complexity-report.md` gespeichert.
+
+## CI/CD und GitHub Pages
+Die Testergebnisse werden bei jedem Push auf den `main` Branch automatisch auf GitHub Pages veröffentlicht.
+**Hinweis:** Damit dies funktioniert, muss GitHub Pages in den Repository-Einstellungen aktiviert sein:
+1. Gehe zu **Settings > Pages**.
+2. Wähle unter **Build and deployment > Source** die Option **GitHub Actions** aus.

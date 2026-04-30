@@ -182,15 +182,21 @@ jobs:
       if: always()
       run: |
         mkdir -p _site
-        echo "# LLM x Oracle SQLcl Integration Test Results" > _site/index.md
-        echo "## Test Report" >> _site/index.md
-        [ -f "test-report.md" ] && cat test-report.md >> _site/index.md
-        echo "" >> _site/index.md
-        echo "## Complexity Test Report" >> _site/index.md
-        [ -f "complexity-report.md" ] && cat complexity-report.md >> _site/index.md
+        echo "<html><head><title>Test Results</title><style>body{font-family:sans-serif;margin:2em;}table{border-collapse:collapse;}th,td{border:1px solid #ccc;padding:8px;text-align:left;}pre{background:#f4f4f4;padding:10px;overflow:auto;}</style></head><body>" > _site/index.html
+        echo "<h1>LLM x Oracle SQLcl Integration Test Results</h1>" >> _site/index.html
 
-        # Convert md to html using a simple tool or just keep it as md if Jekyll is used
-        # By default GitHub Pages uses Jekyll.
+        if [ -f "test-report.md" ]; then
+          echo "<h2>Integration Test Report</h2>" >> _site/index.html
+          # Simple MD table to HTML conversion for the report
+          cat test-report.md | sed 's/^# \(.*\)/<h1>\1<\/h1>/' | sed 's/^## \(.*\)/<h2>\1<\/h2>/' | sed 's/|/<td>/g' | sed 's/$/<\/tr>/' | sed 's/^<td>/<tr><td>/' >> _site/index.html
+        fi
+
+        if [ -f "complexity-report.md" ]; then
+          echo "<h2>Complexity Test Report</h2>" >> _site/index.html
+          cat complexity-report.md | sed 's/^# \(.*\)/<h1>\1<\/h1>/' | sed 's/^## \(.*\)/<h2>\1<\/h2>/' | sed 's/|/<td>/g' | sed 's/$/<\/tr>/' | sed 's/^<td>/<tr><td>/' >> _site/index.html
+        fi
+
+        echo "</body></html>" >> _site/index.html
 
     - name: Upload Pages Artifact
       if: always()
@@ -222,7 +228,7 @@ jobs:
 
   deploy:
     needs: install-and-test
-    if: github.ref == 'refs/heads/main' || github.event_name == 'push'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
