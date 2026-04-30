@@ -45,11 +45,7 @@ fi
 # 3. Basic LLM connectivity test
 LLM_MODEL=${LLM_MODEL:-llama3}
 echo "Testing LLM ($LLM_MODEL) responsiveness..."
-RESPONSE=$(curl -s -X POST http://127.0.0.1:11434/api/generate -d "{
-  \"model\": \"$LLM_MODEL\",
-  \"prompt\": \"Say hello world in SQL\",
-  \"stream\": false
-}" | jq -r '.response' 2>/dev/null)
+    RESPONSE=$(curl -s -X POST http://127.0.0.1:11434/api/generate -d "$(jq -n --arg model "$LLM_MODEL" --arg prompt "Say hello world in SQL" '{model: $model, prompt: $prompt, stream: false}')" | jq -r '.response' 2>/dev/null)
 
 if [ -n "$RESPONSE" ]; then
     echo "[OK] LLM responded."
@@ -97,15 +93,11 @@ if command -v sql &> /dev/null && [ -n "$DB_CONN_STR" ]; then
 
     PROMPT="Generate a simple Oracle SQL SELECT statement to get the current date from dual. Return ONLY the SQL, no explanation."
 
-    INTEGRATION_RESPONSE=$(curl -s -X POST http://127.0.0.1:11434/api/generate -d "{
-      \"model\": \"$LLM_MODEL\",
-      \"prompt\": \"$PROMPT\",
-      \"stream\": false
-    }" | jq -r '.response' 2>/dev/null)
+    INTEGRATION_RESPONSE=$(curl -s -X POST http://127.0.0.1:11434/api/generate -d "$(jq -n --arg model "$LLM_MODEL" --arg prompt "$PROMPT" '{model: $model, prompt: $prompt, stream: false}')" | jq -r '.response' 2>/dev/null)
 
     if [ -n "$INTEGRATION_RESPONSE" ]; then
-        # Extraction: remove markdown backticks and isolate the SELECT statement (case-insensitive)
-        CLEAN_SQL=$(echo "$INTEGRATION_RESPONSE" | tr -d '`' | tr '\n' ' ' | sed -n 's/.*\(\(SELECT\|select\)[^;]*\).*/\1/p' | head -n 1)
+        # Extraction: use python helper for more robust SQL extraction
+        CLEAN_SQL=$(echo "$INTEGRATION_RESPONSE" | python3 install/extract_sql.py)
 
         if [ -n "$CLEAN_SQL" ]; then
             echo "Executing LLM generated SQL: $CLEAN_SQL"
@@ -142,15 +134,11 @@ if command -v sql &> /dev/null && [ -n "$DB_CONN_STR" ]; then
 
     PROMPT="Generate an Oracle SQL SELECT statement to find the name (ENAME) and salary (SAL) of all employees in department 10 from the SCOTT.EMP table. Return ONLY the SQL, no explanation."
 
-    SCOTT_RESPONSE=$(curl -s -X POST http://127.0.0.1:11434/api/generate -d "{
-      \"model\": \"$LLM_MODEL\",
-      \"prompt\": \"$PROMPT\",
-      \"stream\": false
-    }" | jq -r '.response' 2>/dev/null)
+    SCOTT_RESPONSE=$(curl -s -X POST http://127.0.0.1:11434/api/generate -d "$(jq -n --arg model "$LLM_MODEL" --arg prompt "$PROMPT" '{model: $model, prompt: $prompt, stream: false}')" | jq -r '.response' 2>/dev/null)
 
     if [ -n "$SCOTT_RESPONSE" ]; then
-        # Extraction: remove markdown backticks and isolate the SELECT statement (case-insensitive)
-        CLEAN_SQL=$(echo "$SCOTT_RESPONSE" | tr -d '`' | tr '\n' ' ' | sed -n 's/.*\(\(SELECT\|select\)[^;]*\).*/\1/p' | head -n 1)
+        # Extraction: use python helper for more robust SQL extraction
+        CLEAN_SQL=$(echo "$SCOTT_RESPONSE" | python3 install/extract_sql.py)
 
         if [ -n "$CLEAN_SQL" ]; then
             echo "Executing LLM generated SQL on SCOTT schema: $CLEAN_SQL"
