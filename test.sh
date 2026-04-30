@@ -18,12 +18,12 @@ log_result() {
 
 # 1. Check Ollama
 echo "Checking Ollama..."
-if curl -s http://localhost:11434/api/tags > /dev/null; then
+if curl -s http://127.0.0.1:11434/api/tags > /dev/null; then
     echo "[OK] Ollama is reachable."
     log_result "Check Ollama" "✅ OK" "Ollama is reachable"
 else
-    echo "[FAIL] Ollama is not reachable on localhost:11434."
-    log_result "Check Ollama" "❌ FAIL" "Ollama is not reachable on localhost:11434"
+    echo "[FAIL] Ollama is not reachable on 127.0.0.1:11434."
+    log_result "Check Ollama" "❌ FAIL" "Ollama is not reachable on 127.0.0.1:11434"
 fi
 
 # 2. Check SQLcl
@@ -45,7 +45,7 @@ fi
 # 3. Basic LLM connectivity test
 LLM_MODEL=${LLM_MODEL:-llama3}
 echo "Testing LLM ($LLM_MODEL) responsiveness..."
-RESPONSE=$(curl -s -X POST http://localhost:11434/api/generate -d "{
+RESPONSE=$(curl -s -X POST http://127.0.0.1:11434/api/generate -d "{
   \"model\": \"$LLM_MODEL\",
   \"prompt\": \"Say hello world in SQL\",
   \"stream\": false
@@ -97,15 +97,15 @@ if command -v sql &> /dev/null && [ -n "$DB_CONN_STR" ]; then
 
     PROMPT="Generate a simple Oracle SQL SELECT statement to get the current date from dual. Return ONLY the SQL, no explanation."
 
-    INTEGRATION_RESPONSE=$(curl -s -X POST http://localhost:11434/api/generate -d "{
+    INTEGRATION_RESPONSE=$(curl -s -X POST http://127.0.0.1:11434/api/generate -d "{
       \"model\": \"$LLM_MODEL\",
       \"prompt\": \"$PROMPT\",
       \"stream\": false
     }" | jq -r '.response' 2>/dev/null)
 
     if [ -n "$INTEGRATION_RESPONSE" ]; then
-        # Simple extraction: remove possible markdown backticks and find the SQL statement
-        CLEAN_SQL=$(echo "$INTEGRATION_RESPONSE" | tr -d '`' | tr '\n' ' ' | grep -iE "SELECT.*FROM" | sed -e 's/.*\(SELECT.*FROM[^;]*\).*/\1/' | head -n 1)
+        # Extraction: remove markdown backticks and isolate the SELECT statement
+        CLEAN_SQL=$(echo "$INTEGRATION_RESPONSE" | tr -d '`' | tr '\n' ' ' | sed -n 's/.*\(SELECT[^;]*\).*/\1/p' | head -n 1)
 
         if [ -n "$CLEAN_SQL" ]; then
             echo "Executing LLM generated SQL: $CLEAN_SQL"
@@ -142,15 +142,15 @@ if command -v sql &> /dev/null && [ -n "$DB_CONN_STR" ]; then
 
     PROMPT="Generate an Oracle SQL SELECT statement to find the name (ENAME) and salary (SAL) of all employees in department 10 from the SCOTT.EMP table. Return ONLY the SQL, no explanation."
 
-    SCOTT_RESPONSE=$(curl -s -X POST http://localhost:11434/api/generate -d "{
+    SCOTT_RESPONSE=$(curl -s -X POST http://127.0.0.1:11434/api/generate -d "{
       \"model\": \"$LLM_MODEL\",
       \"prompt\": \"$PROMPT\",
       \"stream\": false
     }" | jq -r '.response' 2>/dev/null)
 
     if [ -n "$SCOTT_RESPONSE" ]; then
-        # Simple extraction: remove possible markdown backticks and find the SQL statement
-        CLEAN_SQL=$(echo "$SCOTT_RESPONSE" | tr -d '`' | tr '\n' ' ' | grep -iE "SELECT.*FROM" | sed -e 's/.*\(SELECT.*FROM[^;]*\).*/\1/' | head -n 1)
+        # Extraction: remove markdown backticks and isolate the SELECT statement
+        CLEAN_SQL=$(echo "$SCOTT_RESPONSE" | tr -d '`' | tr '\n' ' ' | sed -n 's/.*\(SELECT[^;]*\).*/\1/p' | head -n 1)
 
         if [ -n "$CLEAN_SQL" ]; then
             echo "Executing LLM generated SQL on SCOTT schema: $CLEAN_SQL"

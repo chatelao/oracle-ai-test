@@ -37,7 +37,8 @@ else
     # Find the bin directory
     SQLCL_BIN=$(find "$SQLCL_DIR" -name "sql" -type f | grep "/bin/sql" | head -n 1)
     if [ -n "$SQLCL_BIN" ]; then
-        SQLCL_BIN_DIR=$(dirname "$SQLCL_BIN")
+        # Ensure we have an absolute path
+        SQLCL_BIN_DIR=$(cd "$(dirname "$SQLCL_BIN")" && pwd)
         echo "SQLcl found at $SQLCL_BIN_DIR"
 
         # If not already in PATH, add it
