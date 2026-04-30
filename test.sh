@@ -104,8 +104,8 @@ if command -v sql &> /dev/null && [ -n "$DB_CONN_STR" ]; then
     }" | jq -r '.response' 2>/dev/null)
 
     if [ -n "$INTEGRATION_RESPONSE" ]; then
-        # Extraction: remove markdown backticks and isolate the SELECT statement
-        CLEAN_SQL=$(echo "$INTEGRATION_RESPONSE" | tr -d '`' | tr '\n' ' ' | sed -n 's/.*\(SELECT[^;]*\).*/\1/p' | head -n 1)
+        # Extraction: remove markdown backticks and isolate the SELECT statement (case-insensitive)
+        CLEAN_SQL=$(echo "$INTEGRATION_RESPONSE" | tr -d '`' | tr '\n' ' ' | sed -n 's/.*\(\(SELECT\|select\)[^;]*\).*/\1/p' | head -n 1)
 
         if [ -n "$CLEAN_SQL" ]; then
             echo "Executing LLM generated SQL: $CLEAN_SQL"
@@ -149,8 +149,8 @@ if command -v sql &> /dev/null && [ -n "$DB_CONN_STR" ]; then
     }" | jq -r '.response' 2>/dev/null)
 
     if [ -n "$SCOTT_RESPONSE" ]; then
-        # Extraction: remove markdown backticks and isolate the SELECT statement
-        CLEAN_SQL=$(echo "$SCOTT_RESPONSE" | tr -d '`' | tr '\n' ' ' | sed -n 's/.*\(SELECT[^;]*\).*/\1/p' | head -n 1)
+        # Extraction: remove markdown backticks and isolate the SELECT statement (case-insensitive)
+        CLEAN_SQL=$(echo "$SCOTT_RESPONSE" | tr -d '`' | tr '\n' ' ' | sed -n 's/.*\(\(SELECT\|select\)[^;]*\).*/\1/p' | head -n 1)
 
         if [ -n "$CLEAN_SQL" ]; then
             echo "Executing LLM generated SQL on SCOTT schema: $CLEAN_SQL"
