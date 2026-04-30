@@ -93,8 +93,10 @@ jobs:
         # This prevents the account from locking during the startup/polling phase.
         # We use sqlplus as the oracle user inside the container.
         docker exec -i -u oracle -e ORACLE_SID=FREE oracle-db sqlplus -S / as sysdba <<'EOF'
-        ALTER USER system ACCOUNT UNLOCK;
+        ALTER USER system IDENTIFIED BY password ACCOUNT UNLOCK;
         ALTER PROFILE DEFAULT LIMIT FAILED_LOGIN_ATTEMPTS UNLIMITED;
+        ALTER SESSION SET CONTAINER = FREEPDB1;
+        ALTER USER system IDENTIFIED BY password ACCOUNT UNLOCK;
         EXIT;
         EOF
 
