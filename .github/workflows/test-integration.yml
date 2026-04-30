@@ -4,6 +4,11 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   install-and-test:
     runs-on: ubuntu-latest
@@ -167,6 +172,32 @@ jobs:
         # The docker compose maps 1521:1521
         bash test.sh
 
+    - name: Run Complexity Test Script
+      env:
+        DB_CONN_STR: "system/password@127.0.0.1:1521/FREEPDB1"
+      run: |
+        bash test_complexity.sh
+
+    - name: Prepare GitHub Pages
+      if: always()
+      run: |
+        mkdir -p _site
+        echo "# LLM x Oracle SQLcl Integration Test Results" > _site/index.md
+        echo "## Test Report" >> _site/index.md
+        [ -f "test-report.md" ] && cat test-report.md >> _site/index.md
+        echo "" >> _site/index.md
+        echo "## Complexity Test Report" >> _site/index.md
+        [ -f "complexity-report.md" ] && cat complexity-report.md >> _site/index.md
+
+        # Convert md to html using a simple tool or just keep it as md if Jekyll is used
+        # By default GitHub Pages uses Jekyll.
+
+    - name: Upload Pages Artifact
+      if: always()
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: _site
+
     - name: Save Docker Images
       if: steps.cache-docker-images.outputs.cache-hit != 'true'
       run: |
@@ -184,5 +215,19 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: test-report
-        path: test-report.md
+        name: test-reports
+        path: |
+          test-report.md
+          complexity-report.md
+
+  deploy:
+    needs: install-and-test
+    if: github.ref == 'refs/heads/main' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
