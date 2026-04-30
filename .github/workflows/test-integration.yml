@@ -16,6 +16,7 @@ jobs:
     - name: Free Disk Space
       run: |
         sudo rm -rf /tmp/docker-images/images.tar 2>/dev/null || true
+        docker builder prune -af
         docker system prune -af
 
     - name: Cache SQLcl
@@ -128,6 +129,21 @@ EOF
         # First install ollama cli if not present (install/llm.sh does this)
         # But we need it to point to the docker container if we run it from host
         # Actually, it's easier to just run it inside the container or via curl
+
+        echo "Waiting for Ollama service to be ready..."
+        MAX_RETRIES=30
+        COUNT=0
+        until curl -s http://127.0.0.1:11434/api/tags > /dev/null; do
+          sleep 5
+          COUNT=$((COUNT + 1))
+          if [ $COUNT -ge $MAX_RETRIES ]; then
+            echo "Error: Ollama service failed to become ready."
+            docker logs ollama
+            exit 1
+          fi
+          echo "Still waiting for Ollama... ($((COUNT * 5))s)"
+        done
+        echo "Ollama service is ready."
 
         # Check if the model already exists to avoid redundant pull
         if ! docker exec ollama ollama list | grep -q "llama3"; then
