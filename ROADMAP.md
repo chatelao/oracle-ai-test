@@ -28,6 +28,7 @@ Dieses Projekt zielt darauf ab, das Zusammenspiel zwischen einem lokalen Large L
 - [x] Optimierung der CI-Laufzeit durch Caching (Docker Images, SQLcl, LLM Modelle).
 - [x] Fehlerbehebung bei der Datenbankverbindung (Umstellung auf `system` User).
 - [x] Optimierung des CI/CD Workflows (Disk Cleanup, Readiness Checks, robuste Pfade).
+- [x] Verbesserung der Test-Robustheit und des Berichtswesens (SQL-Normalisierung, detaillierte ORA-Fehler).
 
 ## Fortschrittsbewertung
 Der Fortschritt wird durch das Bestehen des `test.sh` Skripts in der CI/CD-Pipeline gemessen. Die Pipeline wurde optimiert, um die notwendige Infrastruktur (Datenbank und LLM) während des Laufs bereitzustellen.

@@ -104,7 +104,7 @@ if command -v sql &> /dev/null && [ -n "$DB_CONN_STR" ]; then
             # Capture output and exit code
             SQL_OUTPUT=$(echo "$CLEAN_SQL" | sql -L -s "$DB_CONN_STR" 2>&1)
             SQL_EXIT_CODE=$?
-            CLEAN_RESULT=$(echo "$SQL_OUTPUT" | grep -v "connected" | grep -v "USER          =" | grep -v "URL           =" | grep -v "Error Message =" | xargs)
+            CLEAN_RESULT=$(echo "$SQL_OUTPUT" | grep -v "connected" | grep -v "USER          =" | grep -v "URL           =" | grep -v "Error Message =" | tr -d '\r' | tr '\n' ' ' | tr -s ' ' | sed 's/^ //;s/ $//' | cut -c1-100)
 
             if [ $SQL_EXIT_CODE -eq 0 ] && [[ ! "$SQL_OUTPUT" =~ "ORA-" ]]; then
                 echo "[OK] Integration test successful."
@@ -145,7 +145,7 @@ if command -v sql &> /dev/null && [ -n "$DB_CONN_STR" ]; then
             # Capture output and exit code
             SQL_OUTPUT=$(echo "$CLEAN_SQL" | sql -L -s "$DB_CONN_STR" 2>&1)
             SQL_EXIT_CODE=$?
-            CLEAN_RESULT=$(echo "$SQL_OUTPUT" | grep -v "connected" | grep -v "USER          =" | grep -v "URL           =" | grep -v "Error Message =" | xargs)
+            CLEAN_RESULT=$(echo "$SQL_OUTPUT" | grep -v "connected" | grep -v "USER          =" | grep -v "URL           =" | grep -v "Error Message =" | tr -d '\r' | tr '\n' ' ' | tr -s ' ' | sed 's/^ //;s/ $//' | cut -c1-100)
 
             if [ $SQL_EXIT_CODE -eq 0 ] && [[ ! "$SQL_OUTPUT" =~ "ORA-" ]]; then
                 echo "[OK] SCOTT integration test successful."
