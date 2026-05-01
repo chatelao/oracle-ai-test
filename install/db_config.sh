@@ -11,7 +11,9 @@ export DB_PORT="${DB_PORT:-1521}"
 export DB_SERVICE="${DB_SERVICE:-FREEPDB1}"
 
 # Connection string format: user/pass@host:port/service
-export DB_CONN_STR="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_SERVICE}"
+if [ -z "$DB_CONN_STR" ]; then
+    export DB_CONN_STR="${DB_USER}/${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_SERVICE}"
+fi
 
-echo "Database configuration template loaded."
+echo "Database configuration loaded."
 echo "Connection string: ${DB_CONN_STR}"
