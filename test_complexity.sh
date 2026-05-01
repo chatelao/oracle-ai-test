@@ -3,6 +3,7 @@
 
 REPORT_FILE="complexity-report.md"
 LLM_MODEL=${LLM_MODEL:-llama3}
+OLLAMA_URL=${OLLAMA_URL:-http://127.0.0.1:11434}
 [ -f "install/db_config.sh" ] && source install/db_config.sh
 
 echo "=== SCOTT/TIGER Complexity Test ==="
@@ -18,14 +19,30 @@ else
     exit 1
 fi
 
-# 2. Check Database Connectivity
+# 2. Check Ollama Connectivity
+echo "Checking Ollama connectivity..."
+if ! curl -s "$OLLAMA_URL/api/tags" > /dev/null; then
+    echo "Error: Could not connect to Ollama at $OLLAMA_URL. Aborting tests."
+    echo "# Complexity Test Report - $(date)" > "$REPORT_FILE"
+    echo "## Ollama Connectivity Error" >> "$REPORT_FILE"
+    echo "The tests could not be executed because Ollama is unreachable at $OLLAMA_URL." >> "$REPORT_FILE"
+    exit 1
+fi
+
+# 3. Check Database Connectivity
 echo "Checking Database connectivity..."
-if ! echo "SELECT 1 FROM DUAL;" | sql -L -s "$DB_CONN_STR" &> /dev/null; then
+DB_CONN_CHECK=$(echo "SELECT 1 FROM DUAL;" | sql -L -s "$DB_CONN_STR" 2>&1)
+DB_EXIT_CODE=$?
+if [ $DB_EXIT_CODE -ne 0 ] || [[ "$DB_CONN_CHECK" =~ "ORA-" ]]; then
     echo "Error: Could not connect to database. Aborting tests."
+    ORA_ERR=$(echo "$DB_CONN_CHECK" | grep -o "ORA-[0-9]\+.*" | head -n 1 | cut -c1-100 | tr '|' '-')
+    [ -z "$ORA_ERR" ] && ORA_ERR="Unknown Connection Error"
     # We write a report with a failure message if DB is down
     echo "# Complexity Test Report - $(date)" > "$REPORT_FILE"
     echo "## Database Connectivity Error" >> "$REPORT_FILE"
     echo "The tests could not be executed because the database is unreachable." >> "$REPORT_FILE"
+    echo "" >> "$REPORT_FILE"
+    echo "Error Details: $ORA_ERR" >> "$REPORT_FILE"
     exit 1
 fi
 
@@ -56,9 +73,9 @@ run_test() {
     Context: Oracle Database, SCOTT schema. Use SCOTT.EMP and SCOTT.DEPT tables.
     Requirement: Return ONLY the Oracle SQL SELECT statement. No explanation. No markdown backticks. No trailing characters."
 
-    RESPONSE=$(curl -s -X POST http://127.0.0.1:11434/api/generate -d "$(jq -n --arg model "$LLM_MODEL" --arg prompt "$PROMPT" '{model: $model, prompt: $prompt, stream: false}')" | jq -r '.response' 2>/dev/null)
+    RESPONSE=$(curl -s -X POST "$OLLAMA_URL/api/generate" -d "$(jq -n --arg model "$LLM_MODEL" --arg prompt "$PROMPT" '{model: $model, prompt: $prompt, stream: false}')" | jq -r '.response' 2>/dev/null)
 
-    if [ -z "$RESPONSE" ]; then
+    if [ -z "$RESPONSE" ] || [ "$RESPONSE" == "null" ]; then
         echo "| $level | $task | ❌ FAIL | No response | |" >> "$REPORT_FILE"
         return
     fi
@@ -67,28 +84,30 @@ run_test() {
     CLEAN_SQL=$(echo "$RESPONSE" | python3 install/extract_sql.py)
 
     if [ -z "$CLEAN_SQL" ]; then
-        echo "| $level | $task | ❌ FAIL | Could not extract SQL | $RESPONSE |" >> "$REPORT_FILE"
+        # Sanitize RESPONSE for markdown table
+        SAFE_RESPONSE=$(echo "$RESPONSE" | tr '|' '-' | tr '\n' ' ' | cut -c1-100)
+        echo "| $level | $task | ❌ FAIL | Could not extract SQL | $SAFE_RESPONSE |" >> "$REPORT_FILE"
         return
     fi
 
-    # Normalize SQL for report (remove newlines and extra spaces)
-    REPORT_SQL=$(echo "$CLEAN_SQL" | tr '\n' ' ' | tr -s ' ')
+    # Normalize SQL for report (remove newlines and extra spaces) and sanitize pipes
+    REPORT_SQL=$(echo "$CLEAN_SQL" | tr '\n' ' ' | tr -s ' ' | tr '|' '-')
 
     echo "Executing: $CLEAN_SQL"
     # Ensure SQL ends with semicolon if not present
-    [[ "$CLEAN_SQL" != *";" ]] && CLEAN_SQL="$CLEAN_SQL;"
+    [[ "$CLEAN_SQL" != *";" ]] && EXEC_SQL="$CLEAN_SQL;" || EXEC_SQL="$CLEAN_SQL"
 
-    SQL_OUTPUT=$(echo "$CLEAN_SQL" | sql -L -s "$DB_CONN_STR" 2>&1)
+    SQL_OUTPUT=$(echo "$EXEC_SQL" | sql -L -s "$DB_CONN_STR" 2>&1)
     SQL_EXIT_CODE=$?
 
-    # Remove connection info and extra whitespace
-    CLEAN_RESULT=$(echo "$SQL_OUTPUT" | grep -v "connected" | grep -v "USER          =" | grep -v "URL           =" | grep -v "Error Message =" | tr -d '\r' | tr '\n' ' ' | tr -s ' ' | sed 's/^ //;s/ $//' | cut -c1-100)
+    # Remove connection info and extra whitespace, and sanitize pipes
+    CLEAN_RESULT=$(echo "$SQL_OUTPUT" | grep -v "connected" | grep -v "USER          =" | grep -v "URL           =" | grep -v "Error Message =" | tr -d '\r' | tr '\n' ' ' | tr -s ' ' | sed 's/^ //;s/ $//' | tr '|' '-' | cut -c1-100)
 
     if [ $SQL_EXIT_CODE -eq 0 ] && [[ ! "$SQL_OUTPUT" =~ "ORA-" ]]; then
         echo "| $level | $task | ✅ OK | \`$REPORT_SQL\` | $CLEAN_RESULT |" >> "$REPORT_FILE"
     else
-        # Extract ORA error and some context
-        ORA_ERR=$(echo "$SQL_OUTPUT" | grep -o "ORA-[0-9]\+.*" | head -n 1 | cut -c1-100)
+        # Extract ORA error and some context, sanitize pipes
+        ORA_ERR=$(echo "$SQL_OUTPUT" | grep -o "ORA-[0-9]\+.*" | head -n 1 | cut -c1-100 | tr '|' '-')
         [ -z "$ORA_ERR" ] && ORA_ERR="Unknown Error"
         echo "| $level | $task | ❌ FAIL | \`$REPORT_SQL\` | Error: $ORA_ERR |" >> "$REPORT_FILE"
     fi
