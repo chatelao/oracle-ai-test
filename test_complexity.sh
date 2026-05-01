@@ -36,19 +36,15 @@ run_test() {
     - SCOTT.DEPT (DEPTNO, DNAME, LOC)
     Requirement: Return ONLY the Oracle SQL SELECT statement. No explanation. No markdown backticks. No trailing characters."
 
-    RESPONSE=$(curl -s -X POST http://127.0.0.1:11434/api/generate -d "{
-      \"model\": \"$LLM_MODEL\",
-      \"prompt\": \"$PROMPT\",
-      \"stream\": false
-    }" | jq -r '.response' 2>/dev/null)
+    RESPONSE=$(curl -s -X POST http://127.0.0.1:11434/api/generate -d "$(jq -n --arg model "$LLM_MODEL" --arg prompt "$PROMPT" '{model: $model, prompt: $prompt, stream: false}')" | jq -r '.response' 2>/dev/null)
 
     if [ -z "$RESPONSE" ]; then
         echo "| $level | $task | ❌ FAIL | No response | |" >> "$REPORT_FILE"
         return
     fi
 
-    # Extraction - case insensitive search for SELECT ... FROM, and remove trailing garbage
-    CLEAN_SQL=$(echo "$RESPONSE" | tr -d '`' | tr '\n' ' ' | sed -e 's/.*\(\(SELECT\|select\).*\(FROM\|from\)[^;]*\).*/\1/' | sed 's/)[^)]*$//' | sed 's/;.*//' | tr -s ' ' | sed 's/^ //;s/ $//')
+    # Extraction - use python helper for more robust SQL extraction
+    CLEAN_SQL=$(echo "$RESPONSE" | python3 install/extract_sql.py)
 
     if [ -z "$CLEAN_SQL" ]; then
         echo "| $level | $task | ❌ FAIL | Could not extract SQL | $RESPONSE |" >> "$REPORT_FILE"
