@@ -2,9 +2,10 @@
 # test.sh - Main test script for LLM and Oracle DB integration
 
 REPORT_FILE="test-report.md"
+LLM_MODEL=${LLM_MODEL:-llama3}
 
 echo "=== LLM x Oracle SQLcl Integration Test ==="
-echo "# Test Report - $(date)" > "$REPORT_FILE"
+echo "# Test Report ($LLM_MODEL) - $(date)" > "$REPORT_FILE"
 echo "" >> "$REPORT_FILE"
 echo "| Test Case | Status | Details |" >> "$REPORT_FILE"
 echo "|-----------|--------|---------|" >> "$REPORT_FILE"
@@ -43,7 +44,6 @@ else
 fi
 
 # 3. Basic LLM connectivity test
-LLM_MODEL=${LLM_MODEL:-llama3}
 echo "Testing LLM ($LLM_MODEL) responsiveness..."
     RESPONSE=$(curl -s -X POST http://127.0.0.1:11434/api/generate -d "$(jq -n --arg model "$LLM_MODEL" --arg prompt "Say hello world in SQL" '{model: $model, prompt: $prompt, stream: false}')" | jq -r '.response' 2>/dev/null)
 

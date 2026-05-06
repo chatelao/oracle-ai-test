@@ -12,6 +12,10 @@ permissions:
 jobs:
   install-and-test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        model: [llama3, "gemma:2b"]
 
     steps:
     - uses: actions/checkout@v4
@@ -36,7 +40,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ./ollama_data
-        key: ${{ runner.os }}-ollama-llama3
+        key: ${{ runner.os }}-ollama-${{ matrix.model }}
 
     - name: Cache Docker Images
       id: cache-docker-images
@@ -155,11 +159,11 @@ jobs:
         echo "Ollama service is ready."
 
         # Check if the model already exists to avoid redundant pull
-        if ! docker exec ollama ollama list | grep -q "llama3"; then
-          echo "llama3 model not found in cache. Pulling..."
-          docker exec ollama ollama pull llama3
+        if ! docker exec ollama ollama list | grep -q "${{ matrix.model }}"; then
+          echo "${{ matrix.model }} model not found in cache. Pulling..."
+          docker exec ollama ollama pull ${{ matrix.model }}
         else
-          echo "llama3 model found in cache. Skipping pull."
+          echo "${{ matrix.model }} model found in cache. Skipping pull."
         fi
 
     - name: Install SCOTT Schema
@@ -171,6 +175,7 @@ jobs:
     - name: Run Test Script
       env:
         DB_CONN_STR: "system/password@127.0.0.1:1521/FREEPDB1"
+        LLM_MODEL: "${{ matrix.model }}"
       run: |
         # Ensure we can connect to the DB from the host
         # The docker compose maps 1521:1521
@@ -179,24 +184,23 @@ jobs:
     - name: Run Complexity Test Script
       env:
         DB_CONN_STR: "system/password@127.0.0.1:1521/FREEPDB1"
+        LLM_MODEL: "${{ matrix.model }}"
       run: |
         bash test_complexity.sh
 
-    - name: Setup Pages
-      if: always() && github.ref == 'refs/heads/main'
-      uses: actions/configure-pages@v5
-
-    - name: Prepare GitHub Pages
-      if: always() && github.ref == 'refs/heads/main'
+    - name: Set Safe Model Name
+      if: always()
+      id: safe_name
       run: |
-        mkdir -p _site
-        python3 install/generate_report.py > _site/index.html
+        SAFE_NAME=$(echo "${{ matrix.model }}" | sed 's/:/-/g')
+        echo "name=${SAFE_NAME}" >> $GITHUB_OUTPUT
 
-    - name: Upload Pages Artifact
-      if: always() && github.ref == 'refs/heads/main'
-      uses: actions/upload-pages-artifact@v3
-      with:
-        path: _site
+    - name: Rename Reports
+      if: always()
+      run: |
+        SAFE_MODEL_NAME="${{ steps.safe_name.outputs.name }}"
+        [ -f test-report.md ] && mv test-report.md test-report-${SAFE_MODEL_NAME}.md
+        [ -f complexity-report.md ] && mv complexity-report.md complexity-report-${SAFE_MODEL_NAME}.md
 
     - name: Save Docker Images
       if: steps.cache-docker-images.outputs.cache-hit != 'true'
@@ -207,22 +211,52 @@ jobs:
     - name: Upload Test Report to Summary
       if: always()
       run: |
-        if [ -f "test-report.md" ]; then
-          cat test-report.md >> $GITHUB_STEP_SUMMARY
+        SAFE_MODEL_NAME="${{ steps.safe_name.outputs.name }}"
+        if [ -f "test-report-${SAFE_MODEL_NAME}.md" ]; then
+          cat test-report-${SAFE_MODEL_NAME}.md >> $GITHUB_STEP_SUMMARY
         fi
 
     - name: Upload Test Report as Artifact
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: test-reports
+        name: test-reports-${{ steps.safe_name.outputs.name }}
         path: |
-          test-report.md
-          complexity-report.md
+          test-report-*.md
+          complexity-report-*.md
+
+  aggregate-reports:
+    needs: install-and-test
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-*
+          merge-multiple: true
+
+      - name: Setup Pages
+        if: github.ref == 'refs/heads/main'
+        uses: actions/configure-pages@v5
+
+      - name: Prepare GitHub Pages
+        if: github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p _site
+          python3 install/generate_report.py > _site/index.html
+
+      - name: Upload Pages Artifact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
 
   deploy:
-    needs: install-and-test
-    if: always() && github.ref == 'refs/heads/main' && (needs.install-and-test.result == 'success' || needs.install-and-test.result == 'failure')
+    needs: aggregate-reports
+    if: always() && github.ref == 'refs/heads/main' && (needs.aggregate-reports.result == 'success')
     runs-on: ubuntu-latest
     environment:
       name: github-pages

@@ -1,6 +1,7 @@
 import sys
 import html
 import os
+import glob
 
 def md_to_html(md_text):
     lines = md_text.splitlines()
@@ -51,11 +52,19 @@ def md_to_html(md_text):
 
 if __name__ == "__main__":
     report_html = ""
-    for filename in ["test-report.md", "complexity-report.md"]:
-        if os.path.exists(filename):
-            with open(filename, "r") as f:
-                report_html += md_to_html(f.read())
-                report_html += "<hr>"
+    # Find all model-specific reports first
+    report_files = glob.glob("*-report-*.md")
+    # If none found, fall back to default names (for local testing)
+    if not report_files:
+        report_files = [f for f in ["test-report.md", "complexity-report.md"] if os.path.exists(f)]
+
+    # Sort files to ensure consistent order
+    report_files.sort()
+
+    for filename in report_files:
+        with open(filename, "r") as f:
+            report_html += md_to_html(f.read())
+            report_html += "<hr>"
 
     print(f"""
 <html><head><title>Test Results</title><style>

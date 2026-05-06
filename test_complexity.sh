@@ -23,13 +23,13 @@ echo "Checking Database connectivity..."
 if ! echo "SELECT 1 FROM DUAL;" | sql -L -s "$DB_CONN_STR" &> /dev/null; then
     echo "Error: Could not connect to database. Aborting tests."
     # We write a report with a failure message if DB is down
-    echo "# Complexity Test Report - $(date)" > "$REPORT_FILE"
+    echo "# Complexity Test Report ($LLM_MODEL) - $(date)" > "$REPORT_FILE"
     echo "## Database Connectivity Error" >> "$REPORT_FILE"
     echo "The tests could not be executed because the database is unreachable." >> "$REPORT_FILE"
     exit 1
 fi
 
-echo "# Complexity Test Report - $(date)" > "$REPORT_FILE"
+echo "# Complexity Test Report ($LLM_MODEL) - $(date)" > "$REPORT_FILE"
 echo "" >> "$REPORT_FILE"
 echo "| Level | Task | Status | SQL | Result |" >> "$REPORT_FILE"
 echo "|-------|------|--------|-----|--------|" >> "$REPORT_FILE"
