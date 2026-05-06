@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        model: [llama3, "gemma:2b"]
+        model: [llama3, "gemma:2b", "gemma2:9b"]
 
     steps:
     - uses: actions/checkout@v4
