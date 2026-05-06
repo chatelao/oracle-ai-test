@@ -14,7 +14,7 @@ fi
 # Check if sqlcl is already in path and is actually Oracle SQLcl
 IS_SQLCL=false
 if command -v sql &> /dev/null; then
-    if sql -version 2>&1 | grep -q "SQLcl"; then
+    if timeout 5s sql -version 2>&1 | grep -q "SQLcl"; then
         IS_SQLCL=true
     fi
 fi
