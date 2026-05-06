@@ -18,7 +18,11 @@ jobs:
 
     - name: Free Disk Space
       run: |
-        sudo rm -rf /tmp/docker-images/images.tar 2>/dev/null || true
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /opt/ghc
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
         docker builder prune -af
         docker system prune -af
 
@@ -110,15 +114,15 @@ jobs:
         COUNT=0
         MAX_CONN_RETRIES=20
         # Increased sleep interval to 30s to reduce login attempts and allow DB to stabilize
-        until CONNECTION_OUTPUT=$(echo "SELECT 1 FROM DUAL;" | sql -L -s system/password@127.0.0.1:1521/FREEPDB1 2>&1); do
+        until timeout 30s bash -c "echo 'SELECT 1 FROM DUAL;' | sql -L -s system/password@127.0.0.1:1521/FREEPDB1" 2>&1; do
+            CONNECTION_OUTPUT=$?
             sleep 30
             COUNT=$((COUNT + 1))
             if [ $COUNT -ge $MAX_CONN_RETRIES ]; then
                 echo "Error: Oracle Database failed to accept connections after 10 minutes."
-                echo "Last connection error:"
-                echo "$CONNECTION_OUTPUT"
                 # If still locked, try to unlock again as a last resort
                 docker exec -i -u oracle -e ORACLE_SID=FREE oracle-db sqlplus -S / as sysdba <<'EOF'
+        ALTER SESSION SET CONTAINER = FREEPDB1;
         ALTER USER system ACCOUNT UNLOCK;
         EXIT;
         EOF
@@ -218,7 +222,7 @@ jobs:
 
   deploy:
     needs: install-and-test
-    if: github.ref == 'refs/heads/main'
+    if: always() && github.ref == 'refs/heads/main' && (needs.install-and-test.result == 'success' || needs.install-and-test.result == 'failure')
     runs-on: ubuntu-latest
     environment:
       name: github-pages

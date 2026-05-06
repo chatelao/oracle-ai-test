@@ -9,7 +9,7 @@ echo "=== SCOTT/TIGER Complexity Test ==="
 
 # 1. Check SQLcl
 if command -v sql &> /dev/null; then
-    if ! sql -version 2>&1 | grep -q "SQLcl"; then
+    if ! timeout 5s sql -version 2>&1 | grep -q "SQLcl"; then
         echo "Error: 'sql' command found but it is NOT Oracle SQLcl."
         exit 1
     fi
@@ -72,7 +72,7 @@ run_test() {
     fi
 
     # Normalize SQL for report (remove newlines and extra spaces)
-    REPORT_SQL=$(echo "$CLEAN_SQL" | tr '\n' ' ' | tr -s ' ')
+    REPORT_SQL=$(echo "$CLEAN_SQL" | tr '\n' ' ' | tr -s ' ' | sed 's/|/-/g')
 
     echo "Executing: $CLEAN_SQL"
     # Ensure SQL ends with semicolon if not present
@@ -82,13 +82,13 @@ run_test() {
     SQL_EXIT_CODE=$?
 
     # Remove connection info and extra whitespace
-    CLEAN_RESULT=$(echo "$SQL_OUTPUT" | grep -v "connected" | grep -v "USER          =" | grep -v "URL           =" | grep -v "Error Message =" | tr -d '\r' | tr '\n' ' ' | tr -s ' ' | sed 's/^ //;s/ $//' | cut -c1-100)
+    CLEAN_RESULT=$(echo "$SQL_OUTPUT" | grep -v "connected" | grep -v "USER          =" | grep -v "URL           =" | grep -v "Error Message =" | tr -d '\r' | tr '\n' ' ' | tr -s ' ' | sed 's/^ //;s/ $//' | sed 's/|/-/g' | cut -c1-100)
 
     if [ $SQL_EXIT_CODE -eq 0 ] && [[ ! "$SQL_OUTPUT" =~ "ORA-" ]]; then
         echo "| $level | $task | ✅ OK | \`$REPORT_SQL\` | $CLEAN_RESULT |" >> "$REPORT_FILE"
     else
         # Extract ORA error and some context
-        ORA_ERR=$(echo "$SQL_OUTPUT" | grep -o "ORA-[0-9]\+.*" | head -n 1 | cut -c1-100)
+        ORA_ERR=$(echo "$SQL_OUTPUT" | grep -o "ORA-[0-9]\+.*" | head -n 1 | sed 's/|/-/g' | cut -c1-100)
         [ -z "$ORA_ERR" ] && ORA_ERR="Unknown Error"
         echo "| $level | $task | ❌ FAIL | \`$REPORT_SQL\` | Error: $ORA_ERR |" >> "$REPORT_FILE"
     fi
