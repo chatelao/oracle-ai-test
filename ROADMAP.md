@@ -29,7 +29,7 @@ Dieses Projekt zielt darauf ab, das Zusammenspiel zwischen einem lokalen Large L
 - [x] Fehlerbehebung bei der Datenbankverbindung (Umstellung auf `system` User).
 - [x] Optimierung des CI/CD Workflows (Disk Cleanup, Readiness Checks, robuste Pfade).
 - [x] Verbesserung der Test-Robustheit und des Berichtswesens (SQL-Normalisierung, detaillierte ORA-Fehler).
-- [x] Upgrade auf Multi-LLM-Unterstützung in der CI/CD-Pipeline (llama3, gemma:2b, gemma2:9b und gemma4:26b).
+- [x] Upgrade auf Multi-LLM-Unterstützung in der CI/CD-Pipeline (llama3, gemma:2b, gemma2:9b und gemma4:31b).
 
 ## Fortschrittsbewertung
 Der Fortschritt wird durch das Bestehen des `test.sh` Skripts in der CI/CD-Pipeline gemessen. Die Pipeline wurde optimiert, um die notwendige Infrastruktur (Datenbank und LLM) während des Laufs bereitzustellen.
