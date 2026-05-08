@@ -52,7 +52,7 @@ if [ -n "$RESPONSE" ]; then
     echo "LLM Response: $RESPONSE"
     log_result "LLM Connectivity" "✅ OK" "LLM ($LLM_MODEL) responded"
 else
-    echo "[FAIL] LLM did not respond or llama3 model is not loaded."
+    echo "[FAIL] LLM did not respond or $LLM_MODEL model is not loaded."
     log_result "LLM Connectivity" "❌ FAIL" "LLM did not respond or model $LLM_MODEL not loaded"
 fi
 

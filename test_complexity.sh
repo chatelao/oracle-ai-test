@@ -2,6 +2,7 @@
 # test_complexity.sh - 10 Queries of increasing complexity for SCOTT/TIGER
 
 REPORT_FILE="complexity-report.md"
+# Default model is llama3, but others like phi3 or mistral can be used via env var
 LLM_MODEL=${LLM_MODEL:-llama3}
 [ -f "install/db_config.sh" ] && source install/db_config.sh
 

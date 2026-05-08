@@ -32,7 +32,7 @@ else
     echo "Ollama service is ready."
 fi
 
-# Pull a small model for testing
+# Pull a model for testing (e.g., llama3, phi3, mistral, gemma:2b)
 LLM_MODEL=${LLM_MODEL:-llama3}
 echo "Pulling $LLM_MODEL model (this might take a while)..."
 ollama pull "$LLM_MODEL"
