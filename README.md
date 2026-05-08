@@ -48,8 +48,10 @@ bash test_complexity.sh
 Die Ergebnisse werden in `complexity-report.md` gespeichert.
 
 ## CI/CD und GitHub Pages
+Der aktuelle Report ist hier einsehbar: [https://chatelao.github.io/oracle-ai-test/](https://chatelao.github.io/oracle-ai-test/)
+
 Die Testergebnisse werden bei jedem Push auf den `main` Branch automatisch auf GitHub Pages veröffentlicht.
 **Hinweis:** Damit dies funktioniert, muss GitHub Pages in den Repository-Einstellungen aktiviert sein:
 1. Gehe zu **Settings > Pages**.
 2. Wähle unter **Build and deployment > Source** die Option **GitHub Actions** aus.
-3. Nach der ersten erfolgreichen Ausführung des Workflows auf dem `main` Branch ist die Seite unter `https://<user>.github.io/<repo>/` erreichbar.
+3. Nach der ersten erfolgreichen Ausführung des Workflows auf dem `main` Branch ist die Seite unter `https://chatelao.github.io/oracle-ai-test/` erreichbar.
