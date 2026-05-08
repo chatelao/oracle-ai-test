@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        model: [llama3, "gemma:2b", "gemma2:9b", "gemma4:26b", "gemma4:31b", mistral, phi3]
+        model: [llama3, "gemma:2b", "gemma2:9b", "gemma4:26b", "gemma4:31b", mistral, phi3, qwen2.5]
 
     steps:
     - uses: actions/checkout@v4
