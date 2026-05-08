@@ -1,5 +1,5 @@
 #!/bin/bash
-# test_complexity.sh - 20 Queries of increasing complexity for SCOTT/TIGER
+# test_complexity.sh - 21 Queries of increasing complexity for SCOTT/TIGER
 
 REPORT_FILE="complexity-report.md"
 # Default model is llama3, but others like phi3 or mistral can be used via env var
@@ -56,6 +56,7 @@ declare -a PROMPTS=(
     "Find the JOB title that has the highest average salary across the entire company."
     "For each department, show the DNAME and the percentage of the company's total salary that is spent on that department."
     "For each employee, show ENAME, SAL, and the rank of their salary within their department using a window function."
+    "Generate an Oracle SQL query to display the employee hierarchy (reporting structure) starting from the top manager. Show the employee name (ENAME) indented by their level in the hierarchy (e.g., using LPAD and LEVEL). Use CONNECT BY PRIOR."
 )
 
 run_test() {
