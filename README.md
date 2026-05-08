@@ -24,11 +24,11 @@ docker compose up -d
 ```
 
 ### 2. LLM Modell vorbereiten
-Stelle sicher, dass Ollama läuft und lade das gewünschte Modell (z.B. `llama3` oder `phi3`):
+Stelle sicher, dass Ollama läuft und lade das gewünschte Modell (z.B. `llama3`, `phi3` oder `qwen2.5`):
 ```bash
 docker exec -it ollama ollama pull llama3
 # oder
-docker exec -it ollama ollama pull phi3
+docker exec -it ollama ollama pull qwen2.5
 ```
 
 ### 3. Datenbank konfigurieren
