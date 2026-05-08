@@ -1,5 +1,5 @@
 #!/bin/bash
-# test_complexity.sh - 10 Queries of increasing complexity for SCOTT/TIGER
+# test_complexity.sh - 20 Queries of increasing complexity for SCOTT/TIGER
 
 REPORT_FILE="complexity-report.md"
 # Default model is llama3, but others like phi3 or mistral can be used via env var
@@ -46,6 +46,16 @@ declare -a PROMPTS=(
     "Find departments (DNAME) from SCOTT.DEPT that have no employees in SCOTT.EMP."
     "List the top 3 highest earning employees (ENAME, SAL) from the SCOTT.EMP table."
     "For each department, show the employee name (ENAME), hire date (HIREDATE), and a running total of salaries (SAL) (cumulative sum) ordered by hire date."
+    "Find the salary grade for each employee. Join SCOTT.EMP and SCOTT.SALGRADE where SAL is between LOSAL and HISAL."
+    "For each department (DNAME), find the name of the employee who has the longest tenure (earliest HIREDATE)."
+    "List departments (DNAME) where the total sum of salaries is greater than the average total salary across all departments."
+    "Show department names and job titles where the total salary for that job in that department exceeds 5000."
+    "Find employees (ENAME) who were hired in the same year as their manager. Join SCOTT.EMP with itself."
+    "For each employee, show their name, their manager's name, and their manager's manager's name (if any). Use a self-join."
+    "List employees (ENAME) whose salary is higher than the average salary of their respective department."
+    "Find the JOB title that has the highest average salary across the entire company."
+    "For each department, show the DNAME and the percentage of the company's total salary that is spent on that department."
+    "For each employee, show ENAME, SAL, and the rank of their salary within their department using a window function."
 )
 
 run_test() {
