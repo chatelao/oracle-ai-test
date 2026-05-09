@@ -3,6 +3,7 @@ import html
 import os
 import glob
 import re
+from datetime import datetime, timezone
 
 def parse_report_for_matrix(filename):
     # Extract model name from filename like complexity-report-llama3.md or test-report-llama3.md
@@ -130,6 +131,7 @@ def md_to_html(md_text):
 
 if __name__ == "__main__":
     matrix_html = generate_matrix_html()
+    timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
 
     report_html = ""
     # Find all model-specific reports first
@@ -162,6 +164,7 @@ hr{{margin:3em 0; border: 0; border-top: 5px solid #eee;}}
 .matrix-container {{ overflow-x: auto; }}
 </style></head><body>
 <h1>LLM x Oracle SQLcl Integration Test Results</h1>
+<p style="font-style: italic;">Last updated: {timestamp}</p>
 <div class="matrix-container">
 {matrix_html}
 </div>
