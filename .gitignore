@@ -1,3 +1,5 @@
 test-report.md
 complexity-report.md
 ollama.log
+__pycache__/
+*.pyc
